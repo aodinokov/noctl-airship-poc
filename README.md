@@ -2,7 +2,7 @@
 noctl PoC for Airship
 
 
-##Installation
+## Installation
 ```
 git clone https://github.com/aodinokov/noctl-airship-poc.git
 ```
@@ -25,7 +25,9 @@ EOF
 chmod +x $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjagenerator/JinjaGenerator $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjatransformer/JinjaTransformer
 ```
 
-##Work
+download and put to noctl-airship-poc/bin/ the following: yq, kustomize, kpt
+
+## Work
 ```
 cd ~
 mkdir workdir
