@@ -1,0 +1,11 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: site-exm01a
+dependencies:
+- name: ../baremetal-prime/
+  git:
+    repo: https://github.com/aodinokov/noctl-airship-poc.git
+    directory: packages/modules/baremetal-prime 
+    ref: master
+

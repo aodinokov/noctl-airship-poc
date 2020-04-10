@@ -1,0 +1,36 @@
+apiVersion: someteam.example.com/v1
+kind: JinjaTransformer
+metadata:
+  name: _catalogue2function-ephemeral-catalogue
+jinjaTemplate: |
+  {% set source = resources[fn.filter_getMatchingIndexes(resources,
+                fn.filter_operatorAnd(
+                        fn.filter_fieldEqual("kind", "VariableCatalogue"),
+                        fn.filter_fieldEqual("metadata/name", "type-test-bootstrap-ephemeral-catalogue")
+                ))[0]] %}
+  {{ 
+        resources | 
+        filter_modifyMatching(
+                fn.filter_operatorAnd(
+                        fn.filter_fieldEqual("kind", "VariableCatalogue"),
+                        fn.filter_fieldEqual("metadata/name", "function-ephemeral-catalogue")
+                ),
+                fn.modify_byPath(
+                        "data/kubernetes/ca-cert",
+                        fn.operation_set(source.data.kubernetes.get("x-ca-cert"))
+                ),
+                fn.modify_byPath(
+                        "data/kubernetes/ca-key",
+                        fn.operation_set(source.data.kubernetes.get("x-ca-key"))
+                ),
+                fn.modify_byPath(
+                        "data/kubernetes/client-cert",
+                        fn.operation_set(source.data.kubernetes.get("x-client-cert"))
+                ),
+                fn.modify_byPath(
+                        "data/kubernetes/client-key",
+                        fn.operation_set(source.data.kubernetes.get("x-client-key"))
+                ),
+        ) |
+        yaml_dump(_all=True)
+  }}

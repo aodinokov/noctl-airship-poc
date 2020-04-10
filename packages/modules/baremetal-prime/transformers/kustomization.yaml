@@ -1,0 +1,6 @@
+resources:
+## call all conversions from current catalogs to subfunctions
+#- _catalogue2function-ephemeral-catalogue.yaml
+## call all subfunctions transformers
+#- ../../../../function/ephemeral/transformers
+## exec all transformers for local resources (except _catalogue)
