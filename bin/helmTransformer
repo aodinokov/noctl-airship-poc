@@ -1,0 +1,46 @@
+#!/bin/bash
+#set -xe
+
+if [ $# != 1 ]; then
+  echo Missing mandatory argument >&2
+  exit 1
+fi
+
+if [ $(yq r $1 kind) != 'helmTransformer' ]; then
+  echo Incorrect config kind >&2
+  exit 1
+fi
+
+TMP_DIR=${TMP_DIR:-"$(dirname $(mktemp -u))"}
+WRK_DIR=${DIR:-"$(mktemp -d $TMP_DIR/$(basename $0).XXXX)"}
+echo Work dir $WRK_DIR >&2
+
+YAMLS=$(cat)
+
+yamls_len=$(echo "$YAMLS" | yq r -d* - * | wc -l)
+i=0
+mkdir -p "$WRK_DIR/chart/stdin/"
+while [ $i != $yamls_len ]; do
+   echo "$YAMLS" | yq r -d$i - > "$WRK_DIR/chart/stdin/"$(printf "%06d" $i)".yaml"
+   ((i++))
+done
+
+mkdir -p "$WRK_DIR/chart/templates/"
+yq r $1 spec > "$WRK_DIR/chart/templates/spec.tpl"
+
+cat > "$WRK_DIR/chart/Chart.yaml" << EOF
+apiVersion: v1
+description: Kustomize transformer dummy helm chart
+name: helmTransformerChart
+version: 0.1.0
+maintainers:
+  - name: Authors of kustomize transformer dummy helm chart
+EOF
+
+cp $1 "$WRK_DIR/chart/values.yaml"
+
+pushd "$WRK_DIR" >&2
+helm template xxx chart
+popd >&2
+
+rm -rf "$WRK_DIR"
