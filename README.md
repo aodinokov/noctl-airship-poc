@@ -18,11 +18,16 @@ Do the following:
 ```
 mkdir -p $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjagenerator
 mkdir -p $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjatransformer
+mkdir -p $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/helmtransformer
 cat <<EOF | tee $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjagenerator/JinjaGenerator $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjatransformerJinjaTransformer
 #!/bin/bash
 exec jinjaPlugin
 EOF
-chmod +x $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjagenerator/JinjaGenerator $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjatransformer/JinjaTransformer
+cat <<EOF | tee $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/helmtransformer/helmTransformer
+#!/bin/bash
+exec helmTransformer
+EOF
+chmod +x $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjagenerator/JinjaGenerator $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/jinjatransformer/JinjaTransformer $XDG_CONFIG_HOME/kustomize/plugin/someteam.example.com/v1/helmtransformer/helmTransformer 
 ```
 
 download and put to noctl-airship-poc/bin/ the following: yq, kustomize, kpt
