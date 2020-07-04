@@ -1,0 +1,52 @@
+apiVersion: airshipit.org/v1alpha1
+kind: NodeBootstrap
+metadata:
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/airshipit/kustomize-functions/redfish-debian_stable:v0.0.1
+spec:
+  # can be sleep <number> | setPower | reboot| ejectMedia | getStatus | doDoRemoteDirect
+  operations: 
+  - op: getStatus
+  - op: sleep 2
+  - op: doDoRemoteDirect
+  bmh:
+    name: bmo-master-0
+    namespace: bmo-project
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: bmo-master-0
+  namespace: bmo-project
+spec:
+    bmc:
+    address: ipmi://10.10.57.19
+    credentialsName: bmo-master-0-bmc-secret
+  bootMACAddress: 98:03:9b:61:80:48
+  consumerRef:
+    apiVersion: machine.openshift.io/v1beta1
+    kind: Machine
+    name: bmo-master-0
+    namespace: bmo-project
+  externallyProvisioned: true
+  hardwareProfile: default
+  image:
+    checksum: http://172.16.1.100/images/myOSv1/airship-debian.iso.md5sum
+    url: http://172.16.1.100/images/myOSv1/airship-debian.iso
+  online: true
+  disableCertificateVerification: false
+  rootDeviceHints:
+    model: default
+    vendor: dell
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bmo-master-0-bmc-secret
+  namespace: bmo-project
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
