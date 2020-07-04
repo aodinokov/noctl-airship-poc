@@ -1,6 +1,6 @@
 # Pod emulator
 
-This is an example of implementing an pod emulator function.
+This is an example of implementing a pod emulator function.
 
 This example is written in `go` and uses the `kyaml` libraries for parsing the
 input and writing the output.  Writing in `go` is not a requirement.

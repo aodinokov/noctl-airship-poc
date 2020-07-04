@@ -43,3 +43,5 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/bin/config-function /usr/local/bin/config-function
+
+CMD /usr/local/bin/config-function
