@@ -14,7 +14,7 @@ type Model struct {
 	Re *regexp.Regexp
 
 	// constructor
-	Constructor func() (*Driver, error)
+	Constructor func() (Driver, error)
 }
 
 type Vendor struct {
@@ -22,7 +22,7 @@ type Vendor struct {
 	Models []*Model
 
 	// Fallback driver
-	DefaultConstructor func() (*Driver, error)
+	DefaultConstructor func() (Driver, error)
 }
 
 
@@ -35,7 +35,7 @@ func NewDriverFactory() *DriverFactory {
 	return &DriverFactory{KnownDrivers:  map[string] *Vendor{}, }
 }
 
-func (df *DriverFactory) Register(v string, m string, c func() (*Driver, error)) error {
+func (df *DriverFactory) Register(v string, m string, c func() (Driver, error)) error {
 	if v == "" {
 		v = "default"
 	}
@@ -71,7 +71,7 @@ func (df *DriverFactory) Register(v string, m string, c func() (*Driver, error))
 	return nil
 }
 
-func (df *DriverFactory) NewDriver(v string, m string) (*Driver, error) {
+func (df *DriverFactory) NewDriver(v string, m string) (Driver, error) {
 	if v == "" {
 		v = "default"
 	}

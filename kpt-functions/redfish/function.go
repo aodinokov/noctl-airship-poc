@@ -7,6 +7,8 @@ import (
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 )
 
 type Operation struct {
@@ -25,17 +27,25 @@ type RedfishOperationFunctionConfig struct {
 }
 
 type RedfishOperationFunction struct {
+	DrvFactory *DriverFactory
+
 	Config RedfishOperationFunctionConfig
 
 	Bmh *metal3v1alpha1.BareMetalHost
 	CredentialsSecret *k8sv1.Secret
 
 	Items []*yaml.RNode
+
+	Drv Driver
 }
 
 // Check if the read values are valid
 // Perform some caching initialization
 func (f *RedfishOperationFunction) FinalizeInit(items []*yaml.RNode) error {
+	if f.DrvFactory == nil {
+		return fmt.Errorf("driver factory isn't initialized")
+	}
+
 	f.Items = items
 
 	if err := f.findAndKeepBmh(); err != nil {
@@ -47,75 +57,79 @@ func (f *RedfishOperationFunction) FinalizeInit(items []*yaml.RNode) error {
 
 	// TODO: make some invariant check
 
+	drv, err := f.DrvFactory.NewDriver(f.Bmh.Spec.RootDeviceHints.Vendor, f.Bmh.Spec.RootDeviceHints.Model)
+	if err != nil {
+		return err
+	}
+	f.Drv = drv
+
 	return nil
 }
 
 func (f *RedfishOperationFunction) findAndKeepBmh() error {
-	// TODO: check if kyaml has a filter to look by meta fields
-	for _, r := range f.Items {
-		meta, err := r.GetMeta()
-		if err != nil {
-			return err
-		}
-
-		if meta.Kind != "BareMetalHost" ||  meta.Name != f.Config.Spec.BmhRef.Name || meta.Namespace != f.Config.Spec.BmhRef.Namespace {
-			continue
-		}
-
-		if meta.APIVersion != "metal3.io/v1alpha1" {
-			return fmt.Errorf("unsupported BareMetalHost %s apiVerion: %s", 
-				meta.Name, meta.APIVersion)
-		}
-		// Convert to BMH struct
-		b, err := yaml.Marshal(r)
-		if err != nil {
-			return err
-		}
-
-		f.Bmh = &metal3v1alpha1.BareMetalHost{}
-		err = yaml.Unmarshal(b, f.Bmh)
-		if err != nil {
-			return err
-		}
-		return nil
+	c := complexFilter{
+		Filters: []kio.Filter{
+			filters.GrepFilter{Path: []string{"apiVersion"}, Value: "metal3.io/v1alpha1", },
+			filters.GrepFilter{Path: []string{"kind"}, Value: "BareMetalHost", },
+			filters.GrepFilter{Path: []string{"metadata", "name"}, Value: f.Config.Spec.BmhRef.Name, },
+			filters.GrepFilter{Path: []string{"metadata", "namespace"}, Value: f.Config.Spec.BmhRef.Namespace, },
+		},
+	}
+	nodes, err := c.Filter(f.Items)
+	if err != nil {
+		return err
+	}
+	if len(nodes) != 1 {
+		return fmt.Errorf("looked for BareMetalHost:metal3.io/v1alpha1 with name %s, namespace %s, expected 1, found %d",
+			f.Config.Spec.BmhRef.Name,
+			f.Config.Spec.BmhRef.Namespace,
+			len(nodes))
+	}
+	// Convert to BMH struct
+	b, err := yaml.Marshal(nodes[0])
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("wasn't able to find BareMetalHost %s in namespace %s",
-		f.Config.Spec.BmhRef.Name,
-		f.Config.Spec.BmhRef.Namespace)
+	f.Bmh = &metal3v1alpha1.BareMetalHost{}
+	err = yaml.Unmarshal(b, f.Bmh)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (f *RedfishOperationFunction) findAndKeepCredentialsSecret() error {
-	// TODO: see above
-	for _, r := range f.Items {
-		meta, err := r.GetMeta()
-		if err != nil {
-			return err
-		}
+	c := complexFilter{
+		Filters: []kio.Filter{
+			filters.GrepFilter{Path: []string{"apiVersion"}, Value: "v1", },
+			filters.GrepFilter{Path: []string{"kind"}, Value: "Secret", },
+			filters.GrepFilter{Path: []string{"metadata", "name"}, Value: f.Bmh.Spec.BMC.CredentialsName, },
+			filters.GrepFilter{Path: []string{"metadata", "namespace"}, Value: f.Config.Spec.BmhRef.Namespace, },
 
-		if meta.Kind != "Secret" || meta.Name != f.Bmh.Spec.BMC.CredentialsName || meta.Namespace != f.Config.Spec.BmhRef.Namespace {
-			continue
-		}
-
-		if meta.APIVersion != "v1" {
-			return fmt.Errorf("unsupported Secret %s apiVerion: %s",
-				meta.Name, meta.APIVersion)
-		}
-		// Convert to Secret struct
-		b, err := yaml.Marshal(r)
-		if err != nil {
-			return err
-		}
-		f.CredentialsSecret = &k8sv1.Secret{}
-		err = f.CredentialsSecret.Unmarshal(b)
-		if err != nil {
-			return err
-		}
-		return nil
+		},
 	}
-	return fmt.Errorf("wasn't able to find BareMetalHost %s in namespace %s",
-		f.Bmh.Spec.BMC.CredentialsName,
-		f.Config.Spec.BmhRef.Namespace)
+	nodes, err := c.Filter(f.Items)
+	if err != nil {
+		return err
+	}
+	if len(nodes) != 1 {
+		return fmt.Errorf("looked for Secret:v1 with name %s, namespace %s, expected 1, found %d",
+			f.Bmh.Spec.BMC.CredentialsName,
+			f.Config.Spec.BmhRef.Namespace,
+			len(nodes))
+	}
+	// Convert to Secret struct
+	b, err := yaml.Marshal(nodes[0])
+	if err != nil {
+		return err
+	}
+	f.CredentialsSecret = &k8sv1.Secret{}
+	err = f.CredentialsSecret.Unmarshal(b)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (f *RedfishOperationFunction) Execute() error {
@@ -128,7 +142,7 @@ func (f *RedfishOperationFunction) Execute() error {
 }
 
 func (f *RedfishOperationFunction) execOperation(i int) error {
-	// TODO: init context 
+	// TODO: just call the driver
 	return nil
 }
 

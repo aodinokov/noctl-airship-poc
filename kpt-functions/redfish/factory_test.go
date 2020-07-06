@@ -11,7 +11,7 @@ func TestDriverFactory(t *testing.T) {
 	}
 
 	called := false
-	fn := func () (*Driver, error) {
+	fn := func () (Driver, error) {
 		called = true
 		return nil, nil
 	}
