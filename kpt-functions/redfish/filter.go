@@ -12,9 +12,9 @@ type complexFilter struct {
 func (cf *complexFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	p := kio.Pipeline{
-		Inputs:  []kio.Reader{&kio.PackageBuffer{Nodes: nodes}, },
+		Inputs:  []kio.Reader{&kio.PackageBuffer{Nodes: nodes}},
 		Filters: cf.Filters,
-		Outputs: []kio.Writer{&kio.PackageBuffer{}, },
+		Outputs: []kio.Writer{&kio.PackageBuffer{}},
 	}
 
 	err := p.Execute()

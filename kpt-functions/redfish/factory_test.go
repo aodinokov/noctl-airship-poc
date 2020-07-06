@@ -1,6 +1,6 @@
 package redfish
 
-import(
+import (
 	"testing"
 )
 
@@ -11,7 +11,7 @@ func TestDriverFactory(t *testing.T) {
 	}
 
 	called := false
-	fn := func (_ *RedfishOperationFunction) (Driver, error) {
+	fn := func(_ *RedfishOperationFunction) (Driver, error) {
 		called = true
 		return nil, nil
 	}

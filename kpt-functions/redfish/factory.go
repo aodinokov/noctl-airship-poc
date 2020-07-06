@@ -1,12 +1,21 @@
 package redfish
 
-import(
+import (
 	"fmt"
 	"regexp"
 )
 
 type Driver interface {
-	// TODO:
+	// returns the status of Power
+	IsPowerOn() (bool, error)
+	// syncronizes the powerstate with bmh.spec.online fild
+	SyncPower() error
+	// reboot system
+	Reboot() error
+	//
+	EjectMedia() error
+	//
+	SetBootSource() error
 }
 
 type CreateDriver func(*RedfishOperationFunction) (Driver, error)
@@ -27,14 +36,13 @@ type Vendor struct {
 	DefaultConstructor CreateDriver
 }
 
-
 type DriverFactory struct {
 	// map of all verndor drivers
-	KnownDrivers map[string] *Vendor
+	KnownDrivers map[string]*Vendor
 }
 
 func NewDriverFactory() *DriverFactory {
-	return &DriverFactory{KnownDrivers:  map[string] *Vendor{}, }
+	return &DriverFactory{KnownDrivers: map[string]*Vendor{}}
 }
 
 func (df *DriverFactory) Register(v string, m string, c CreateDriver) error {
