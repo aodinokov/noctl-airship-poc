@@ -57,7 +57,11 @@ func (f *RedfishOperationFunction) FinalizeInit(items []*yaml.RNode) error {
 
 	// TODO: make some invariant check
 
-	drv, err := f.DrvFactory.NewDriver(f.Bmh.Spec.RootDeviceHints.Vendor, f.Bmh.Spec.RootDeviceHints.Model)
+	fn, err := f.DrvFactory.GetCreateDriverFn(f.Bmh.Spec.RootDeviceHints.Vendor, f.Bmh.Spec.RootDeviceHints.Model)
+	if err != nil {
+		return err
+	}
+	drv, err := fn(f)
 	if err != nil {
 		return err
 	}

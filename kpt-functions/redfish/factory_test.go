@@ -11,7 +11,7 @@ func TestDriverFactory(t *testing.T) {
 	}
 
 	called := false
-	fn := func () (Driver, error) {
+	fn := func (_ *RedfishOperationFunction) (Driver, error) {
 		called = true
 		return nil, nil
 	}
@@ -20,8 +20,12 @@ func TestDriverFactory(t *testing.T) {
 		t.Error("expected that default vendor/module would be created")
 	}
 
-	if _, err := f.NewDriver("default", ""); err != nil {
+	rfn, err := f.GetCreateDriverFn("default", "")
+	if err != nil {
 		t.Errorf("expected that the registered driver would be found, but got error: %v", err)
+	}
+	if _, err := rfn(nil); err != nil {
+		t.Errorf("func shouldn't return err")
 	}
 
 	if !called {

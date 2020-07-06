@@ -9,12 +9,14 @@ type Driver interface {
 	// TODO:
 }
 
+type CreateDriver func(*RedfishOperationFunction) (Driver, error)
+
 type Model struct {
 	// if empty - when we don't check - good for default values
 	Re *regexp.Regexp
 
 	// constructor
-	Constructor func() (Driver, error)
+	Constructor CreateDriver
 }
 
 type Vendor struct {
@@ -22,7 +24,7 @@ type Vendor struct {
 	Models []*Model
 
 	// Fallback driver
-	DefaultConstructor func() (Driver, error)
+	DefaultConstructor CreateDriver
 }
 
 
@@ -35,7 +37,7 @@ func NewDriverFactory() *DriverFactory {
 	return &DriverFactory{KnownDrivers:  map[string] *Vendor{}, }
 }
 
-func (df *DriverFactory) Register(v string, m string, c func() (Driver, error)) error {
+func (df *DriverFactory) Register(v string, m string, c CreateDriver) error {
 	if v == "" {
 		v = "default"
 	}
@@ -71,7 +73,7 @@ func (df *DriverFactory) Register(v string, m string, c func() (Driver, error)) 
 	return nil
 }
 
-func (df *DriverFactory) NewDriver(v string, m string) (Driver, error) {
+func (df *DriverFactory) GetCreateDriverFn(v string, m string) (CreateDriver, error) {
 	if v == "" {
 		v = "default"
 	}
@@ -93,18 +95,18 @@ func (df *DriverFactory) NewDriver(v string, m string) (Driver, error) {
 		if vendor.DefaultConstructor == nil {
 			return nil, fmt.Errorf("there is no default model registered in vendor %s drivers", v)
 		}
-		return vendor.DefaultConstructor()
+		return vendor.DefaultConstructor, nil
 	}
 
 	// check in registration order
 	for _, model := range vendor.Models {
 		if model.Re.MatchString(m) {
-			return model.Constructor()
+			return model.Constructor, nil
 		}
 	}
 
 	if vendor.DefaultConstructor != nil {
-		return vendor.DefaultConstructor()
+		return vendor.DefaultConstructor, nil
 	}
 
 	return nil, fmt.Errorf("wasn't able to find driver for %s %s", v, m)
