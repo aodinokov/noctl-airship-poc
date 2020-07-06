@@ -25,6 +25,7 @@ type RedfishOperationFunctionConfig struct {
 			Name      string `yaml:"name"`
 			Namespace string `yaml:"namespace"`
 		} `yaml:"bmhRef"`
+		UserAgent *string `yaml:"userAgent,omitempty"`
 	} `yaml:"spec,omitempty"`
 }
 
