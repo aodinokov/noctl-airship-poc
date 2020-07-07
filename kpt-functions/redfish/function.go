@@ -26,14 +26,14 @@ type OperationFunctionConfig struct {
 			Name      string `yaml:"name"`
 			Namespace string `yaml:"namespace"`
 		} `yaml:"bmhRef"`
-		UserAgent *string `yaml:"userAgent,omitempty"`
-		IgnoreProxySetting bool `yaml:"ignoreProxySetting,omitempty"`
+		UserAgent          *string `yaml:"userAgent,omitempty"`
+		IgnoreProxySetting bool    `yaml:"ignoreProxySetting,omitempty"`
 	} `yaml:"spec,omitempty"`
 }
 
 type DriverConfig struct {
 	BMC struct {
-		URL string
+		URL      string
 		Username string
 		Password string
 	}
@@ -42,9 +42,9 @@ type DriverConfig struct {
 		URL string
 	}
 
-	UserAgent *string
+	UserAgent                      *string
 	DisableCertificateVerification bool
-	IgnoreProxySetting bool
+	IgnoreProxySetting             bool
 }
 
 type OperationFunction struct {
@@ -54,16 +54,16 @@ type OperationFunction struct {
 	// config will be read
 	Config OperationFunctionConfig
 
-	// items contains all items
+	// items contain all resources
 	Items []*yaml.RNode
 
 	// actual data that can be converted to DriverConfig
 	Bmh               *metal3v1alpha1.BareMetalHost
 	CredentialsSecret *k8sv1.Secret
 
-	// Driver and it's config
+	// Driver and its config
 	DrvConfig *DriverConfig
-	Drv Driver
+	Drv       Driver
 }
 
 // Check if the read values are valid
@@ -198,10 +198,10 @@ func (f *OperationFunction) createDriverConfig() error {
 		return fmt.Errorf("OperationFucntion isn't initialize")
 	}
 
-	drvConfig := DriverConfig {
-		UserAgent: f.Config.Spec.UserAgent,
+	drvConfig := DriverConfig{
+		UserAgent:                      f.Config.Spec.UserAgent,
 		DisableCertificateVerification: f.Bmh.Spec.BMC.DisableCertificateVerification,
-		IgnoreProxySetting: f.Config.Spec.IgnoreProxySetting,
+		IgnoreProxySetting:             f.Config.Spec.IgnoreProxySetting,
 	}
 
 	drvConfig.BMC.URL = f.Bmh.Spec.BMC.Address
