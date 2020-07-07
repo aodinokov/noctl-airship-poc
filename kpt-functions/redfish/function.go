@@ -18,7 +18,7 @@ type Operation struct {
 	Args   []string `yaml:"args,omitempty"`
 }
 
-type RedfishOperationFunctionConfig struct {
+type OperationFunctionConfig struct {
 	Spec struct {
 		Operations []Operation `yaml:"operations,omitempty"`
 		BmhRef     struct {
@@ -29,10 +29,10 @@ type RedfishOperationFunctionConfig struct {
 	} `yaml:"spec,omitempty"`
 }
 
-type RedfishOperationFunction struct {
+type OperationFunction struct {
 	DrvFactory *DriverFactory
 
-	Config RedfishOperationFunctionConfig
+	Config OperationFunctionConfig
 
 	Bmh               *metal3v1alpha1.BareMetalHost
 	CredentialsSecret *k8sv1.Secret
@@ -44,7 +44,7 @@ type RedfishOperationFunction struct {
 
 // Check if the read values are valid
 // Perform some caching initialization
-func (f *RedfishOperationFunction) FinalizeInit(items []*yaml.RNode) error {
+func (f *OperationFunction) FinalizeInit(items []*yaml.RNode) error {
 	if f.DrvFactory == nil {
 		return fmt.Errorf("driver factory isn't initialized")
 	}
@@ -73,7 +73,7 @@ func (f *RedfishOperationFunction) FinalizeInit(items []*yaml.RNode) error {
 	return nil
 }
 
-func (f *RedfishOperationFunction) findAndKeepBmh() error {
+func (f *OperationFunction) findAndKeepBmh() error {
 	c := complexFilter{
 		Filters: []kio.Filter{
 			filters.GrepFilter{Path: []string{"apiVersion"}, Value: "metal3.io/v1alpha1"},
@@ -106,7 +106,7 @@ func (f *RedfishOperationFunction) findAndKeepBmh() error {
 	return nil
 }
 
-func (f *RedfishOperationFunction) findAndKeepCredentialsSecret() error {
+func (f *OperationFunction) findAndKeepCredentialsSecret() error {
 	c := complexFilter{
 		Filters: []kio.Filter{
 			filters.GrepFilter{Path: []string{"apiVersion"}, Value: "v1"},
@@ -138,7 +138,7 @@ func (f *RedfishOperationFunction) findAndKeepCredentialsSecret() error {
 	return nil
 }
 
-func (f *RedfishOperationFunction) Execute() error {
+func (f *OperationFunction) Execute() error {
 	for i := range f.Config.Spec.Operations {
 		if err := f.execOperation(i); err != nil {
 			return err
@@ -147,7 +147,7 @@ func (f *RedfishOperationFunction) Execute() error {
 	return nil
 }
 
-func (f *RedfishOperationFunction) execOperation(i int) error {
+func (f *OperationFunction) execOperation(i int) error {
 	if f.Drv == nil {
 		return fmt.Errorf("driver isn't initialized")
 	}

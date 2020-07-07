@@ -18,7 +18,7 @@ type Driver interface {
 	SetBootSource() error
 }
 
-type CreateDriver func(*RedfishOperationFunction) (Driver, error)
+type CreateDriver func(*OperationFunction) (Driver, error)
 
 type Model struct {
 	// if empty - when we don't check - good for default values
