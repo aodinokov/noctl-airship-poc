@@ -10,6 +10,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 
 	"github.com/aodinokov/noctl-airship-poc/kpt-functions/redfish"
+	"github.com/aodinokov/noctl-airship-poc/kpt-functions/redfish/drivers/dmtf"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 	defer log.Print("Finished")
 
 	df := redfish.NewDriverFactory()
-	if err := df.Register("", "", nil/*TODO: put here default/default driver fn */); err != nil {
+	if err := df.Register("", "", dmtf.NewDriver); err != nil {
 		fmt.Fprintf(os.Stderr, "Can't register default driver\n")
 		os.Exit(1)
 	}
