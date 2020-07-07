@@ -7,9 +7,9 @@ import (
 
 type Driver interface {
 	// returns the status of Power
-	IsPowerOn() (bool, error)
+	IsOnline() (bool, error)
 	// syncronizes the powerstate with bmh.spec.online fild
-	SyncPower() error
+	SyncPower(online bool) error
 	// reboot system
 	Reboot() error
 	//
@@ -18,14 +18,14 @@ type Driver interface {
 	SetBootSource() error
 }
 
-type CreateDriver func(*OperationFunction) (Driver, error)
+type DriverConstructor func(*DriverConfig) (Driver, error)
 
 type Model struct {
 	// if empty - when we don't check - good for default values
 	Re *regexp.Regexp
 
 	// constructor
-	Constructor CreateDriver
+	Constructor DriverConstructor
 }
 
 type Vendor struct {
@@ -33,7 +33,7 @@ type Vendor struct {
 	Models []*Model
 
 	// Fallback driver
-	DefaultConstructor CreateDriver
+	DefaultConstructor DriverConstructor
 }
 
 type DriverFactory struct {
@@ -45,7 +45,7 @@ func NewDriverFactory() *DriverFactory {
 	return &DriverFactory{KnownDrivers: map[string]*Vendor{}}
 }
 
-func (df *DriverFactory) Register(v string, m string, c CreateDriver) error {
+func (df *DriverFactory) Register(v string, m string, c DriverConstructor) error {
 	if v == "" {
 		v = "default"
 	}
@@ -81,7 +81,7 @@ func (df *DriverFactory) Register(v string, m string, c CreateDriver) error {
 	return nil
 }
 
-func (df *DriverFactory) GetCreateDriverFn(v string, m string) (CreateDriver, error) {
+func (df *DriverFactory) GetCreateDriverFn(v string, m string) (DriverConstructor, error) {
 	if v == "" {
 		v = "default"
 	}

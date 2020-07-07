@@ -10,7 +10,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package redfish
+package dmtf
 
 import (
 	"context"
@@ -23,42 +23,56 @@ import (
 	redfishAPI "opendev.org/airship/go-redfish/api"
 	redfishClient "opendev.org/airship/go-redfish/client"
 
-	"opendev.org/airship/airshipctl/pkg/log"
-	"opendev.org/airship/airshipctl/pkg/remote/power"
+	"github.com/aodinokov/noctl-airship-poc/kpt-functions/redfish"
 )
 
-const (
-	// ClientType is used by other packages as the identifier of the Redfish client.
-	ClientType string = "redfish"
-)
+type Driver struct {
+	Api redfishAPI.RedfishAPI
 
-// Client holds details about a Redfish out-of-band system required for out-of-band management.
-type Client struct {
-	nodeID              string
-	RedfishAPI          redfishAPI.RedfishAPI
-	RedfishCFG          *redfishClient.Configuration
-	systemActionRetries int
-	systemRebootDelay   int
-
-	// Sleep is meant to be mocked out for tests
-	Sleep func(d time.Duration)
+	AuthContextValue struct {
+		Key interface{}
+		Val interface{}
+	}
 }
 
-// NodeID retrieves the ephemeral node ID.
-func (c *Client) NodeID() string {
-	return c.nodeID
-}
+func NewDriver(f *redfish.OperationFunction) (redfish.Driver, error) {
+	drv := Driver{}
 
-// SystemActionRetries returns number of attempts to reach host during reboot process and ejecting virtual media
-func (c *Client) SystemActionRetries() int {
-	return c.systemActionRetries
-}
+	if f.CredentialsSecret != nil {
+		// TODO: exctract creds from f.CredentialsSecret
+		drv.AuthContextValue.Key = redfishClient.ContextBasicAuth
+		drv.AuthContextValue.Val = redfishClient.BasicAuth{UserName: "username", Password: "password"}
+        }
 
-// SystemRebootDelay returns number of seconds to wait after reboot if host isn't available
-func (c *Client) SystemRebootDelay() int {
-	return c.systemRebootDelay
-}
 
+	cfg := redfishClient.NewConfiguration()
+	if f.Config.Spec.UserAgent != nil {
+		cfg.UserAgent = *f.Config.Spec.UserAgent
+	}
+
+	// see https://github.com/golang/go/issues/26013
+	// We clone the default transport to ensure when we customize the transport
+	// that we are providing it sane timeouts and other defaults that we would
+	// normally get when not overriding the transport
+	defaultTransportCopy := http.DefaultTransport.(*http.Transport) //nolint:errcheck
+	transport := defaultTransportCopy.Clone()
+
+	if /*insecure */ false {
+		transport.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec
+		}
+	}
+
+	cfg.HTTPClient = &http.Client{
+		Transport: transport,
+	}
+
+
+	drv.Api = redfishClient.NewAPIClient(cfg).DefaultApi
+
+	return &drv
+
+/*
 // EjectVirtualMedia ejects a virtual media device attached to a host.
 func (c *Client) EjectVirtualMedia(ctx context.Context) error {
 	waitForEjectMedia := func(managerID string, mediaID string) error {
@@ -165,7 +179,7 @@ func (c *Client) SetBootSourceByType(ctx context.Context) error {
 	allowableValues := system.Boot.BootSourceOverrideTargetRedfishAllowableValues
 	for _, bootSource := range allowableValues {
 		if strings.EqualFold(string(bootSource), vMediaType) {
-			/* set boot source */
+			// set boot source 
 			systemReq := redfishClient.ComputerSystem{}
 			systemReq.Boot.BootSourceOverrideTarget = bootSource
 			_, httpResp, err := c.RedfishAPI.SetSystem(ctx, c.nodeID, systemReq)
@@ -337,3 +351,4 @@ func NewClient(redfishURL string,
 
 	return ctx, c, nil
 }
+*/

@@ -1,6 +1,7 @@
 package redfish
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"time"
@@ -26,19 +27,42 @@ type OperationFunctionConfig struct {
 			Namespace string `yaml:"namespace"`
 		} `yaml:"bmhRef"`
 		UserAgent *string `yaml:"userAgent,omitempty"`
+		IgnoreProxySetting bool `yaml:"ignoreProxySetting,omitempty"`
 	} `yaml:"spec,omitempty"`
 }
 
+type DriverConfig struct {
+	BMC struct {
+		URL string
+		Username string
+		Password string
+	}
+
+	Image struct {
+		URL string
+	}
+
+	UserAgent *string
+	DisableCertificateVerification bool
+	IgnoreProxySetting bool
+}
+
 type OperationFunction struct {
+	// Driver factory has to be set
 	DrvFactory *DriverFactory
 
+	// config will be read
 	Config OperationFunctionConfig
 
+	// items contains all items
+	Items []*yaml.RNode
+
+	// actual data that can be converted to DriverConfig
 	Bmh               *metal3v1alpha1.BareMetalHost
 	CredentialsSecret *k8sv1.Secret
 
-	Items []*yaml.RNode
-
+	// Driver and it's config
+	DrvConfig *DriverConfig
 	Drv Driver
 }
 
@@ -58,17 +82,25 @@ func (f *OperationFunction) FinalizeInit(items []*yaml.RNode) error {
 		return err
 	}
 
+	if err := f.createDriverConfig(); err != nil {
+		return err
+	}
+
 	// TODO: make some invariant check
 
 	fn, err := f.DrvFactory.GetCreateDriverFn(f.Bmh.Spec.RootDeviceHints.Vendor, f.Bmh.Spec.RootDeviceHints.Model)
 	if err != nil {
 		return err
 	}
-	drv, err := fn(f)
+	drv, err := fn(f.DrvConfig)
 	if err != nil {
 		return err
 	}
 	f.Drv = drv
+
+	if err := f.createDriverConfig(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -138,6 +170,50 @@ func (f *OperationFunction) findAndKeepCredentialsSecret() error {
 	return nil
 }
 
+func (f *OperationFunction) getCredentialsSecretValue(key string) (string, error) {
+	if f.CredentialsSecret == nil {
+		return "", fmt.Errorf("OperationFucntion isn't initialize")
+	}
+
+	val, ok := f.CredentialsSecret.StringData[key]
+	if ok {
+		return val, nil
+	}
+
+	b64val, ok := f.CredentialsSecret.Data[key]
+	if ok {
+		var val []byte
+		_, err := base64.StdEncoding.Decode(val, b64val)
+		if err != nil {
+			return "", err
+		}
+		return string(val), nil
+	}
+
+	return "", fmt.Errorf("CredentialsSecret doesn't have key %s", key)
+}
+
+func (f *OperationFunction) createDriverConfig() error {
+	if f.CredentialsSecret == nil || f.Bmh == nil {
+		return fmt.Errorf("OperationFucntion isn't initialize")
+	}
+
+	drvConfig := DriverConfig {
+		UserAgent: f.Config.Spec.UserAgent,
+		DisableCertificateVerification: f.Bmh.Spec.BMC.DisableCertificateVerification,
+		IgnoreProxySetting: f.Config.Spec.IgnoreProxySetting,
+	}
+
+	drvConfig.BMC.URL = f.Bmh.Spec.BMC.Address
+	drvConfig.BMC.Username, _ = f.getCredentialsSecretValue("username") // Ignore error
+	drvConfig.BMC.Password, _ = f.getCredentialsSecretValue("password") // Ignore error
+
+	drvConfig.Image.URL = f.Bmh.Spec.Image.URL
+
+	f.DrvConfig = &drvConfig
+	return nil
+}
+
 func (f *OperationFunction) Execute() error {
 	for i := range f.Config.Spec.Operations {
 		if err := f.execOperation(i); err != nil {
@@ -164,7 +240,7 @@ func (f *OperationFunction) execOperation(i int) error {
 		}
 		time.Sleep(time.Duration(s) * time.Second)
 	case "syncPower":
-		return f.Drv.SyncPower()
+		return f.Drv.SyncPower(f.Bmh.Spec.Online)
 	case "reboot":
 		return f.Drv.Reboot()
 	case "ejectMedia":
@@ -174,13 +250,13 @@ func (f *OperationFunction) execOperation(i int) error {
 			return fmt.Errorf("BareMetalHost must have online: true to do RemoteDirect")
 		}
 
-		powerOn, err := f.Drv.IsPowerOn()
+		online, err := f.Drv.IsOnline()
 		if err != nil {
 			return err
 		}
 
-		if !powerOn {
-			err = f.Drv.SyncPower()
+		if !online {
+			err = f.Drv.SyncPower(f.Bmh.Spec.Online)
 			if err != nil {
 				return err
 			}
