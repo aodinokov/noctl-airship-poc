@@ -15,7 +15,7 @@ import (
 
 func main() {
 	log.Print("started")
-	defer log.Print("Finished")
+	defer log.Print("finished")
 
 	df := redfish.NewDriverFactory()
 	if err := df.Register("", "", dmtf.NewDriver); err != nil {

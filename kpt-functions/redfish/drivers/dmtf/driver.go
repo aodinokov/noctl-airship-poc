@@ -16,11 +16,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
-	//"time"
+	"time"
 
 	redfishAPI "opendev.org/airship/go-redfish/api"
 	redfishClient "opendev.org/airship/go-redfish/client"
@@ -115,14 +116,80 @@ func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
 }
 
 func (d *Driver) IsOnline() (bool, error) {
-	return false, nil
+	cs, err := d.GetSystem()
+	if err != nil {
+		return false, err
+	}
+	return (cs.PowerState == redfishClient.POWERSTATE_ON), nil
+}
+
+func (d *Driver) ResetSystemAndEnsurePowerState(resetType redfishClient.ResetType,
+	desiredPowerState redfishClient.PowerState) error {
+	cs, err := d.GetSystem()
+	if err != nil {
+		return err
+	}
+
+	if cs.PowerState == desiredPowerState {
+		return nil
+	}
+
+	req := redfishClient.ResetRequestBody{ResetType: resetType}
+	err = d.ResetSystem(&req)
+	if err != nil {
+		return err
+	}
+	return d.EnsurePowerState(desiredPowerState)
+}
+
+func (d *Driver) EnsurePowerState(desiredPowerState redfishClient.PowerState) error {
+	// TODO: add pollingInterval and systemReationTimeout
+	for retry := 0; retry <= 60; retry++ {
+		cs, err := d.GetSystem()
+		if err != nil {
+			return err
+		}
+		if cs.PowerState == desiredPowerState {
+			return nil
+		}
+
+		time.Sleep(time.Second)
+
+	}
+	return fmt.Errorf("system hasn't reached desired power state %v", desiredPowerState)
 }
 
 func (d *Driver) SyncPower(online bool) error {
+	var err error
+	if !online {
+		err = d.ResetSystemAndEnsurePowerState(redfishClient.RESETTYPE_FORCE_OFF, redfishClient.POWERSTATE_OFF)
+	} else {
+		err = d.ResetSystemAndEnsurePowerState(redfishClient.RESETTYPE_ON, redfishClient.POWERSTATE_ON)
+	}
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (d *Driver) Reboot() error {
+	cs, err := d.GetSystem()
+	if err != nil {
+		return err
+	}
+	if cs.PowerState == redfishClient.POWERSTATE_OFF {
+		return fmt.Errorf("can't reboot system that is off")
+	}
+
+	err = d.SyncPower(false)
+	if err != nil {
+		return err
+	}
+	err = d.SyncPower(true)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -134,7 +201,29 @@ func (d *Driver) SetBootSource() error {
 	return nil
 }
 
-func (d *Driver) updateContext(ctx context.Context) context.Context {
+func (d *Driver) GetSystem() (*redfishClient.ComputerSystem, error) {
+	ctx := d.UpdateContext(context.Background())
+
+	system, httpResp, err := d.Api.GetSystem(ctx, d.SystemId)
+	err = ResponseError(httpResp, err)
+	if err != nil {
+		return nil, err
+	}
+	return &system, nil
+}
+
+func (d *Driver) ResetSystem(r *redfishClient.ResetRequestBody) error {
+	ctx := d.UpdateContext(context.Background())
+
+	_, httpResp, err := d.Api.ResetSystem(ctx, d.SystemId, *r)
+	err = ResponseError(httpResp, err)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Driver) UpdateContext(ctx context.Context) context.Context {
 	if d.Config.BMC.Username != "" && d.Config.BMC.Password != "" {
 		ctx = context.WithValue(
 			ctx,
@@ -146,3 +235,128 @@ func (d *Driver) updateContext(ctx context.Context) context.Context {
 	}
 	return ctx
 }
+
+// Error provides a detailed error message for end user consumption by inspecting all Redfish client
+// responses and errors.
+func ResponseError(httpResp *http.Response, clientErr error) error {
+	if httpResp == nil {
+		return fmt.Errorf("HTTP request failed. Redfish may be temporarily unavailable. Please try again.")
+	}
+
+	// NOTE(drewwalters96): The error, clientErr, may not be nil even though the request was successful. The HTTP
+	// status code is the most reliable way to determine the result of a Redfish request using the go-redfish
+	// library. The Redfish client uses HTTP codes 200 and 204 to indicate success.
+	var finalError error
+	switch httpResp.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusNoContent:
+		return nil
+	case http.StatusNotFound:
+		finalError = fmt.Errorf("System not found. Correct the system name and try again.")
+	case http.StatusBadRequest:
+		finalError = fmt.Errorf("Invalid request. Verify the system name and try again.")
+	case http.StatusMethodNotAllowed:
+		finalError = fmt.Errorf("%s. BMC returned status '%s'.",
+			"This operation is likely unsupported by the BMC Redfish version, or the BMC is busy",
+			httpResp.Status)
+	default:
+		finalError = fmt.Errorf("BMC responded '%s'.", httpResp.Status)
+		log.Printf("BMC responded '%s'. Attempting to unmarshal the raw BMC error response.", httpResp.Status)
+	}
+
+	/*
+		TODO:
+			// Retrieve the raw HTTP response body
+			oAPIErr, ok := clientErr.(redfishClient.GenericOpenAPIError)
+			if !ok {
+				log.Print("Unable to decode BMC response.")
+			}
+
+			// Attempt to decode the BMC response from the raw HTTP response
+			if bmcResponse, err := DecodeRawError(oAPIErr.Body()); err == nil {
+				finalError = fmt.Errorf("%s BMC responded: '%s'", finalError.Message, bmcResponse)
+			} else {
+				log.Printf("Unable to decode BMC response. %q", err)
+			}
+	*/
+
+	return finalError
+}
+
+/*
+TODO:
+// DecodeRawError decodes a raw Redfish HTTP response and retrieves the extended information and available resolutions
+// returned by the BMC.
+func DecodeRawError(rawResponse []byte) (string, error) {
+	processExtendedInfo := func(extendedInfo map[string]interface{}) (string, error) {
+		message, ok := extendedInfo["Message"]
+		if !ok {
+			return "", ErrUnrecognizedRedfishResponse{Key: "error.@Message.ExtendedInfo.Message"}
+		}
+
+		messageContent, ok := message.(string)
+		if !ok {
+			return "", ErrUnrecognizedRedfishResponse{Key: "error.@Message.ExtendedInfo.Message"}
+		}
+
+		// Resolution may be omitted in some responses
+		if resolution, ok := extendedInfo["Resolution"]; ok {
+			return fmt.Sprintf("%s %s", messageContent, resolution), nil
+		}
+
+		return messageContent, nil
+	}
+
+	// Unmarshal raw Redfish response as arbitrary JSON map
+	var arbitraryJSON map[string]interface{}
+	if err := json.Unmarshal(rawResponse, &arbitraryJSON); err != nil {
+		return "", ErrUnrecognizedRedfishResponse{Key: "error"}
+	}
+
+	errObject, ok := arbitraryJSON["error"]
+	if !ok {
+		return "", ErrUnrecognizedRedfishResponse{Key: "error"}
+	}
+
+	errContent, ok := errObject.(map[string]interface{})
+	if !ok {
+		return "", ErrUnrecognizedRedfishResponse{Key: "error"}
+	}
+
+	extendedInfoContent, ok := errContent["@Message.ExtendedInfo"]
+	if !ok {
+		return "", ErrUnrecognizedRedfishResponse{Key: "error.@Message.ExtendedInfo"}
+	}
+
+	// NOTE(drewwalters96): The official specification dictates that "@Message.ExtendedInfo" should be a JSON array;
+	// however, some BMCs have returned a single JSON dictionary. Handle both types here.
+	switch extendedInfo := extendedInfoContent.(type) {
+	case []interface{}:
+		if len(extendedInfo) == 0 {
+			return "", ErrUnrecognizedRedfishResponse{Key: "error.@MessageExtendedInfo"}
+		}
+
+		var errorMessage string
+		for _, info := range extendedInfo {
+			infoContent, ok := info.(map[string]interface{})
+			if !ok {
+				return "", ErrUnrecognizedRedfishResponse{Key: "error.@Message.ExtendedInfo"}
+			}
+
+			message, err := processExtendedInfo(infoContent)
+			if err != nil {
+				return "", err
+			}
+
+			errorMessage = fmt.Sprintf("%s\n%s", message, errorMessage)
+		}
+
+		return errorMessage, nil
+	case map[string]interface{}:
+		return processExtendedInfo(extendedInfo)
+	default:
+		return "", ErrUnrecognizedRedfishResponse{Key: "error.@Message.ExtendedInfo"}
+	}
+}
+*/
