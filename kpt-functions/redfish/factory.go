@@ -8,14 +8,16 @@ import (
 type Driver interface {
 	// returns the status of Power
 	IsOnline() (bool, error)
-	// syncronizes the powerstate with bmh.spec.online fild
+	// syncronizes the powerstate with the argument
+	// TODO: rename to SetPowerState
 	SyncPower(online bool) error
 	// reboot system
 	Reboot() error
-	//
-	EjectMedia() error
-	//
-	SetBootSource() error
+	// eject all virtual media
+	EjectAllVirtualMedia() error
+	// Set the first compatible virtual media to isoUrl
+	// and put it as a first boot device
+	SetVirtualMediaImageAndAdjustBootOrder(image string) error
 }
 
 type DriverConstructor func(*DriverConfig) (Driver, error)
@@ -41,6 +43,8 @@ type DriverFactory struct {
 	KnownDrivers map[string]*Vendor
 }
 
+// TODO: make a public DefaultDriverFactory object, so drivers could
+// register there from their packages on Init
 func NewDriverFactory() *DriverFactory {
 	return &DriverFactory{KnownDrivers: map[string]*Vendor{}}
 }

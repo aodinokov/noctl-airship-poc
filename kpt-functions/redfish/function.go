@@ -38,10 +38,6 @@ type DriverConfig struct {
 		Password string
 	}
 
-	Image struct {
-		URL string
-	}
-
 	UserAgent                      *string
 	DisableCertificateVerification bool
 	IgnoreProxySetting             bool
@@ -208,8 +204,6 @@ func (f *OperationFunction) createDriverConfig() error {
 	drvConfig.BMC.Username, _ = f.getCredentialsSecretValue("username") // Ignore error
 	drvConfig.BMC.Password, _ = f.getCredentialsSecretValue("password") // Ignore error
 
-	drvConfig.Image.URL = f.Bmh.Spec.Image.URL
-
 	f.DrvConfig = &drvConfig
 	return nil
 }
@@ -243,8 +237,8 @@ func (f *OperationFunction) execOperation(i int) error {
 		return f.Drv.SyncPower(f.Bmh.Spec.Online)
 	case "reboot":
 		return f.Drv.Reboot()
-	case "ejectMedia":
-		return f.Drv.EjectMedia()
+	case "ejectAllVirtualMedia":
+		return f.Drv.EjectAllVirtualMedia()
 	case "doRemoteDirect":
 		if !f.Bmh.Spec.Online {
 			return fmt.Errorf("BareMetalHost must have online: true to do RemoteDirect")
@@ -262,7 +256,7 @@ func (f *OperationFunction) execOperation(i int) error {
 			}
 		}
 
-		err = f.Drv.SetBootSource()
+		err = f.Drv.SetVirtualMediaImageAndAdjustBootOrder(f.Bmh.Spec.Image.URL)
 		if err != nil {
 			return err
 		}

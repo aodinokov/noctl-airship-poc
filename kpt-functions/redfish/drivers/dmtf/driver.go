@@ -33,6 +33,7 @@ type Driver struct {
 	Config   *redfish.DriverConfig
 	Api      redfishAPI.RedfishAPI
 	SystemId string
+	mgrId    string
 }
 
 func BasePath(url *url.URL) (string, error) {
@@ -64,6 +65,14 @@ func ResourceId(url *url.URL, expectedPath string) (string, error) {
 
 func SystemId(url *url.URL) (string, error) {
 	return ResourceId(url, "redfish/v1/Systems/")
+}
+
+func ManagerId(url *url.URL) (string, error) {
+	return  ResourceId(url, /*TODO:*/"")
+}
+
+func MediaId(url *url.URL) (string, error) {
+	return  ResourceId(url, /*TODO:*/"")
 }
 
 func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
@@ -112,6 +121,7 @@ func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
 	}
 
 	drv.Api = redfishClient.NewAPIClient(cfg).DefaultApi
+
 	return &drv, nil
 }
 
@@ -193,14 +203,176 @@ func (d *Driver) Reboot() error {
 	return nil
 }
 
-func (d *Driver) EjectMedia() error {
+func (d *Driver) ManagerId() (string, error) {
+	if d.mgrId != "" {
+		return d.mgrId, nil
+	}
+
+	cs, err := d.GetSystem()
+	if err != nil {
+		return "", err
+	}
+
+	url, err := url.Parse(cs.Links.ManagedBy[0].OdataId)
+	if err != nil {
+		return "", err
+	}
+
+	m, err := ManagerId(url)
+	if err != nil {
+		return "", err
+	}
+
+	d.mgrId = m
+	return d.mgrId, nil
+}
+
+func (d *Driver) SetVirtualMediaImageAndAdjustBootOrder(image string) error {
+	err := d.EjectAllVirtualMedia()
+	if err != nil {
+		return err
+	}
+
+	cs, err := d.GetSystem()
+	if err != nil {
+		return nil
+	}
+
+	mediaTypesPrioOrder := []string{}
+	for _, bootSource := range cs.Boot.BootSourceOverrideTargetRedfishAllowableValues {
+		if bootSource == redfishClient.BOOTSOURCE_CD {
+			mediaTypesPrioOrder = append(mediaTypesPrioOrder, []string{"DVD", "CD"}...)
+			break
+		}
+	}
+	if len(mediaTypesPrioOrder) == 0 {
+		fmt.Errorf("bootsource %v isn't allowed", redfishClient.BOOTSOURCE_CD)
+	}
+
+	applicableVirtualMedia := map[string] []string{}
+	for _, mt := range mediaTypesPrioOrder {
+		applicableVirtualMedia[mt] = nil
+	}
+
+	// search for mdeiaId that fits to our CD/DVD mediaTypes
+	mc, err := d.ListManagerVirtualMedia()
+	if err != nil {
+		return err
+	}
+	for _, mediaURI := range mc.Members {
+		url, err := url.Parse(mediaURI.OdataId)
+		if err != nil {
+			return err
+		}
+		mediaId, err := MediaId(url)
+		if err != nil {
+			return err
+		}
+
+		vm, err := d.GetManagerVirtualMedia(mediaId)
+		if err != nil {
+			return err
+		}
+
+		for _, mediaType := range vm.MediaTypes {
+			if _, ok := applicableVirtualMedia[mediaType]; ok {
+				applicableVirtualMedia[mediaType] = append(applicableVirtualMedia[mediaType], mediaId)
+			}
+		}
+	}
+
+	var (
+		mediaId string
+		mediaType string
+	)
+	for _, mt := range mediaTypesPrioOrder {
+		if (len(applicableVirtualMedia[mt])) > 0 {
+			mediaType = mt
+			mediaId = applicableVirtualMedia[mediaType][0]
+			break
+		}
+	}
+	if mediaId == "" || mediaType == ""  {
+		return fmt.Errorf("wasn't able to find media with allowed mediatypes %v", mediaTypesPrioOrder)
+	}
+
+	mr := redfishClient.InsertMediaRequestBody{
+		Image: image,
+		Inserted: true,
+	}
+	err = d.InsertVirtualMedia(mediaId, &mr)
+	if err != nil {
+		return err
+	}
+
+	sr := redfishClient.ComputerSystem{}
+	sr.Boot.BootSourceOverrideTarget = redfishClient.BOOTSOURCE_CD
+	_, err = d.SetSystem(&sr)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-func (d *Driver) SetBootSource() error {
+func (d* Driver) EjectAllVirtualMedia() error {
+	mc, err := d.ListManagerVirtualMedia()
+	if err != nil {
+		return err
+	}
+
+	for _, mediaURI := range mc.Members {
+		url, err := url.Parse(mediaURI.OdataId)
+		if err != nil {
+			return err
+		}
+		mediaId, err := MediaId(url)
+		if err != nil {
+			return err
+		}
+
+		vm, err := d.GetManagerVirtualMedia(mediaId)
+		if err != nil {
+			return err
+		}
+
+		if vm.Inserted != nil && *vm.Inserted {
+			err := d.EjectVirtualMedia(mediaId)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = d.EnsureVirtualMediaInserted(mediaId, false)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
+func (d *Driver) EnsureVirtualMediaInserted(mediaId string, desiredInsertedValue bool) error {
+        // TODO: add pollingInterval and systemReationTimeout
+        for retry := 0; retry <= 60; retry++ {
+                vm, err := d.GetManagerVirtualMedia(mediaId)
+                if err != nil {
+                        return err
+                }
+                if vm.Inserted != nil && *vm.Inserted == desiredInsertedValue {
+                        return nil
+                }
+
+                time.Sleep(time.Second)
+
+        }
+        return fmt.Errorf("system hasn't reached desired inserted value %v", desiredInsertedValue)
+}
+
+//func (d *Driver) setBootSource(mediaId string) error {
+//	return nil
+//}
+
+// api wrappers
 func (d *Driver) GetSystem() (*redfishClient.ComputerSystem, error) {
 	ctx := d.UpdateContext(context.Background())
 
@@ -216,6 +388,81 @@ func (d *Driver) ResetSystem(r *redfishClient.ResetRequestBody) error {
 	ctx := d.UpdateContext(context.Background())
 
 	_, httpResp, err := d.Api.ResetSystem(ctx, d.SystemId, *r)
+	err = ResponseError(httpResp, err)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Driver) SetSystem(r *redfishClient.ComputerSystem) (*redfishClient.ComputerSystem, error) {
+	ctx := d.UpdateContext(context.Background())
+
+	system, httpResp, err := d.Api.SetSystem(ctx, d.SystemId, *r)
+	err = ResponseError(httpResp, err)
+	if err != nil {
+		return nil, err
+	}
+	return &system, nil
+}
+
+func (d *Driver) ListManagerVirtualMedia() (*redfishClient.Collection, error) {
+	mgrId, err := d.ManagerId()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := d.UpdateContext(context.Background())
+
+	mc, httpResp, err := d.Api.ListManagerVirtualMedia(ctx, mgrId)
+	err = ResponseError(httpResp, err)
+	if err != nil {
+		return nil, err
+	}
+	return &mc, nil
+}
+
+func (d *Driver) GetManagerVirtualMedia(mediaId string) (*redfishClient.VirtualMedia, error) {
+	mgrId, err := d.ManagerId()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := d.UpdateContext(context.Background())
+
+	vm, httpResp, err := d.Api.GetManagerVirtualMedia(ctx, mgrId, mediaId)
+	err = ResponseError(httpResp, err)
+	if err != nil {
+		return nil, err
+	}
+	return &vm, nil
+}
+
+func (d *Driver) EjectVirtualMedia(mediaId string) error {
+	mgrId, err := d.ManagerId()
+	if err != nil {
+		return err
+	}
+
+	ctx := d.UpdateContext(context.Background())
+
+	_, httpResp, err := d.Api.EjectVirtualMedia(ctx, mgrId, mediaId, map[string]interface{}{})
+	err = ResponseError(httpResp, err)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *Driver) InsertVirtualMedia(mediaId string, r *redfishClient.InsertMediaRequestBody) error {
+	mgrId, err := d.ManagerId()
+	if err != nil {
+		return err
+	}
+
+	ctx := d.UpdateContext(context.Background())
+
+	_, httpResp, err := d.Api.InsertVirtualMedia(ctx, mgrId, mediaId, *r)
 	err = ResponseError(httpResp, err)
 	if err != nil {
 		return err
