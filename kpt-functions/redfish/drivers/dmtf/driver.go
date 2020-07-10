@@ -64,7 +64,7 @@ func ResourceId(url *url.URL, expectedPath string) (string, error) {
 }
 
 func SystemId(url *url.URL) (string, error) {
-	return ResourceId(url, "redfish/v1/Systems/")
+	return ResourceId(url, "/redfish/v1/Systems/")
 }
 
 func ManagerId(url *url.URL) (string, error) {

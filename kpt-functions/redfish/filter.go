@@ -1,6 +1,8 @@
 package redfish
 
 import (
+	"log"
+
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -22,5 +24,6 @@ func (cf *complexFilter) Filter(nodes []*yaml.RNode) ([]*yaml.RNode, error) {
 		return nil, err
 	}
 
+	log.Printf("filter in: %v res: %v", p.Inputs[0].(*kio.PackageBuffer).Nodes, p.Outputs[0].(*kio.PackageBuffer).Nodes)
 	return p.Outputs[0].(*kio.PackageBuffer).Nodes, nil
 }

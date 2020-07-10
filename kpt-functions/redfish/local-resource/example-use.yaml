@@ -3,14 +3,11 @@ kind: NodeBootstrap
 metadata:
   annotations:
     config.kubernetes.io/function: |
-      container:
-        image: quay.io/airshipit/kustomize-functions/redfish-debian_stable:v0.0.1
+      exec:
+        path: /home/ubuntu/go/bin/config-function
 spec:
-  # can be sleep <number> | setPower | reboot| ejectMedia | getStatus | doDoRemoteDirect
-  operations: 
-  - op: getStatus
-  - op: sleep 2
-  - op: doDoRemoteDirect
+  operations:
+  - action: doRemoteDirect
   bmh:
     name: bmo-master-0
     namespace: bmo-project
@@ -21,8 +18,8 @@ metadata:
   name: bmo-master-0
   namespace: bmo-project
 spec:
-    bmc:
-    address: ipmi://10.10.57.19
+  bmc:
+    address: redfish://127.0.0.1:8443/redfish/v1/Systems/air-ephemeral
     credentialsName: bmo-master-0-bmc-secret
   bootMACAddress: 98:03:9b:61:80:48
   consumerRef:
@@ -33,13 +30,12 @@ spec:
   externallyProvisioned: true
   hardwareProfile: default
   image:
-    checksum: http://172.16.1.100/images/myOSv1/airship-debian.iso.md5sum
-    url: http://172.16.1.100/images/myOSv1/airship-debian.iso
+    url: http://127.0.0.1:8100/debian-custom.iso
   online: true
-  disableCertificateVerification: false
+  disableCertificateVerification: true
   rootDeviceHints:
     model: default
-    vendor: dell
+    vendor: default
 ---
 apiVersion: v1
 kind: Secret
@@ -47,6 +43,6 @@ metadata:
   name: bmo-master-0-bmc-secret
   namespace: bmo-project
 type: Opaque
-data:
-  username: YWRtaW4=
-  password: cGFzc3dvcmQ=
+stringData:
+  username: username
+  password: password

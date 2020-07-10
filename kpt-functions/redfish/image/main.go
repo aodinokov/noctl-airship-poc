@@ -27,10 +27,12 @@ func main() {
 	resourceList := &framework.ResourceList{FunctionConfig: &function.Config}
 
 	cmd := framework.Command(resourceList, func() error {
+		log.Print("entered")
 		err := function.FinalizeInit(resourceList.Items)
 		if err != nil {
 			return err
 		}
+		log.Print("executing")
 		return function.Execute()
 	})
 

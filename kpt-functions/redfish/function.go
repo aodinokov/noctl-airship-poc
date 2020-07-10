@@ -2,7 +2,9 @@ package redfish
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -71,32 +73,39 @@ func (f *OperationFunction) FinalizeInit(items []*yaml.RNode) error {
 
 	f.Items = items
 
+	log.Print("trying to find bmh")
 	if err := f.findAndKeepBmh(); err != nil {
 		return err
 	}
+	log.Print("trying to find secret")
 	if err := f.findAndKeepCredentialsSecret(); err != nil {
 		return err
 	}
 
+	log.Print("creating driver config")
 	if err := f.createDriverConfig(); err != nil {
 		return err
 	}
 
 	// TODO: make some invariant check
 
-	fn, err := f.DrvFactory.GetCreateDriverFn(f.Bmh.Spec.RootDeviceHints.Vendor, f.Bmh.Spec.RootDeviceHints.Model)
+	log.Print("looking for driver constructor")
+	v := ""
+	m := ""
+	if f.Bmh.Spec.RootDeviceHints != nil {
+		v = f.Bmh.Spec.RootDeviceHints.Vendor
+		m = f.Bmh.Spec.RootDeviceHints.Model
+	}
+	fn, err := f.DrvFactory.GetCreateDriverFn(v, m)
 	if err != nil {
 		return err
 	}
+	log.Print("creating driver instance")
 	drv, err := fn(f.DrvConfig)
 	if err != nil {
 		return err
 	}
 	f.Drv = drv
-
-	if err := f.createDriverConfig(); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -121,16 +130,18 @@ func (f *OperationFunction) findAndKeepBmh() error {
 			len(nodes))
 	}
 	// Convert to BMH struct
-	b, err := yaml.Marshal(nodes[0])
+	b, err := nodes[0].MarshalJSON()
 	if err != nil {
 		return err
 	}
 
-	f.Bmh = &metal3v1alpha1.BareMetalHost{}
-	err = yaml.Unmarshal(b, f.Bmh)
+	bmh := &metal3v1alpha1.BareMetalHost{}
+	err = json.Unmarshal(b, bmh)
 	if err != nil {
 		return err
 	}
+	f.Bmh = bmh
+	log.Printf("successfully stored bmh\n%v\nas\n%v", string(b), *f.Bmh)
 	return nil
 }
 
@@ -143,10 +154,12 @@ func (f *OperationFunction) findAndKeepCredentialsSecret() error {
 			filters.GrepFilter{Path: []string{"metadata", "namespace"}, Value: f.Config.Spec.BmhRef.Namespace},
 		},
 	}
+	log.Print("running filter to find secret")
 	nodes, err := c.Filter(f.Items)
 	if err != nil {
 		return err
 	}
+	log.Print("checking results")
 	if len(nodes) != 1 {
 		return fmt.Errorf("looked for Secret:v1 with name %s, namespace %s, expected 1, found %d",
 			f.Bmh.Spec.BMC.CredentialsName,
@@ -154,15 +167,19 @@ func (f *OperationFunction) findAndKeepCredentialsSecret() error {
 			len(nodes))
 	}
 	// Convert to Secret struct
-	b, err := yaml.Marshal(nodes[0])
+	log.Print("marshaling secret")
+	b, err := nodes[0].MarshalJSON()
 	if err != nil {
 		return err
 	}
-	f.CredentialsSecret = &k8sv1.Secret{}
-	err = f.CredentialsSecret.Unmarshal(b)
+	log.Print("unmarshaling secret")
+	cs := &k8sv1.Secret{}
+	err = json.Unmarshal(b, cs)
 	if err != nil {
 		return err
 	}
+	f.CredentialsSecret = cs
+	log.Printf("successfully stored secret\n%v\nas\n%v", string(b), *f.CredentialsSecret)
 	return nil
 }
 
@@ -201,8 +218,15 @@ func (f *OperationFunction) createDriverConfig() error {
 	}
 
 	drvConfig.BMC.URL = f.Bmh.Spec.BMC.Address
-	drvConfig.BMC.Username, _ = f.getCredentialsSecretValue("username") // Ignore error
-	drvConfig.BMC.Password, _ = f.getCredentialsSecretValue("password") // Ignore error
+	var err error
+	drvConfig.BMC.Username, err = f.getCredentialsSecretValue("username") // Ignore error
+	if err != nil {
+		log.Print(err)
+	}
+	drvConfig.BMC.Password, err = f.getCredentialsSecretValue("password") // Ignore error
+	if err != nil {
+		log.Print(err)
+	}
 
 	f.DrvConfig = &drvConfig
 	return nil
