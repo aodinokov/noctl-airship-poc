@@ -68,11 +68,11 @@ func SystemId(url *url.URL) (string, error) {
 }
 
 func ManagerId(url *url.URL) (string, error) {
-	return  ResourceId(url, /*TODO:*/"")
+	return ResourceId(url /*TODO:*/, "")
 }
 
 func MediaId(url *url.URL) (string, error) {
-	return  ResourceId(url, /*TODO:*/"")
+	return ResourceId(url /*TODO:*/, "")
 }
 
 func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
@@ -227,7 +227,7 @@ func (d *Driver) ManagerId() (string, error) {
 	return d.mgrId, nil
 }
 
-func (d *Driver) SetVirtualMediaImageAndAdjustBootOrder(image string) error {
+func (d *Driver) SetVirtualMediaImage(image string) error {
 	err := d.EjectAllVirtualMedia()
 	if err != nil {
 		return err
@@ -249,7 +249,7 @@ func (d *Driver) SetVirtualMediaImageAndAdjustBootOrder(image string) error {
 		fmt.Errorf("bootsource %v isn't allowed", redfishClient.BOOTSOURCE_CD)
 	}
 
-	applicableVirtualMedia := map[string] []string{}
+	applicableVirtualMedia := map[string][]string{}
 	for _, mt := range mediaTypesPrioOrder {
 		applicableVirtualMedia[mt] = nil
 	}
@@ -282,7 +282,7 @@ func (d *Driver) SetVirtualMediaImageAndAdjustBootOrder(image string) error {
 	}
 
 	var (
-		mediaId string
+		mediaId   string
 		mediaType string
 	)
 	for _, mt := range mediaTypesPrioOrder {
@@ -292,22 +292,25 @@ func (d *Driver) SetVirtualMediaImageAndAdjustBootOrder(image string) error {
 			break
 		}
 	}
-	if mediaId == "" || mediaType == ""  {
+	if mediaId == "" || mediaType == "" {
 		return fmt.Errorf("wasn't able to find media with allowed mediatypes %v", mediaTypesPrioOrder)
 	}
 
 	mr := redfishClient.InsertMediaRequestBody{
-		Image: image,
+		Image:    image,
 		Inserted: true,
 	}
 	err = d.InsertVirtualMedia(mediaId, &mr)
 	if err != nil {
 		return err
 	}
+	return nil
+}
 
+func (d *Driver) AdjustBootOrder() error {
 	sr := redfishClient.ComputerSystem{}
 	sr.Boot.BootSourceOverrideTarget = redfishClient.BOOTSOURCE_CD
-	_, err = d.SetSystem(&sr)
+	_, err := d.SetSystem(&sr)
 	if err != nil {
 		return err
 	}
@@ -315,7 +318,7 @@ func (d *Driver) SetVirtualMediaImageAndAdjustBootOrder(image string) error {
 	return nil
 }
 
-func (d* Driver) EjectAllVirtualMedia() error {
+func (d *Driver) EjectAllVirtualMedia() error {
 	mc, err := d.ListManagerVirtualMedia()
 	if err != nil {
 		return err
@@ -352,20 +355,20 @@ func (d* Driver) EjectAllVirtualMedia() error {
 }
 
 func (d *Driver) EnsureVirtualMediaInserted(mediaId string, desiredInsertedValue bool) error {
-        // TODO: add pollingInterval and systemReationTimeout
-        for retry := 0; retry <= 60; retry++ {
-                vm, err := d.GetManagerVirtualMedia(mediaId)
-                if err != nil {
-                        return err
-                }
-                if vm.Inserted != nil && *vm.Inserted == desiredInsertedValue {
-                        return nil
-                }
+	// TODO: add pollingInterval and systemReationTimeout
+	for retry := 0; retry <= 60; retry++ {
+		vm, err := d.GetManagerVirtualMedia(mediaId)
+		if err != nil {
+			return err
+		}
+		if vm.Inserted != nil && *vm.Inserted == desiredInsertedValue {
+			return nil
+		}
 
-                time.Sleep(time.Second)
+		time.Sleep(time.Second)
 
-        }
-        return fmt.Errorf("system hasn't reached desired inserted value %v", desiredInsertedValue)
+	}
+	return fmt.Errorf("system hasn't reached desired inserted value %v", desiredInsertedValue)
 }
 
 //func (d *Driver) setBootSource(mediaId string) error {

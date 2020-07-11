@@ -15,9 +15,10 @@ type Driver interface {
 	Reboot() error
 	// eject all virtual media
 	EjectAllVirtualMedia() error
-	// Set the first compatible virtual media to isoUrl
-	// and put it as a first boot device
-	SetVirtualMediaImageAndAdjustBootOrder(image string) error
+	// set the first compatible virtual media to isoUrl
+	SetVirtualMediaImage(image string) error
+	// put CD device as a first device to boot from
+	AdjustBootOrder() error
 }
 
 type DriverConstructor func(*DriverConfig) (Driver, error)

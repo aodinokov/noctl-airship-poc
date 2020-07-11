@@ -280,7 +280,12 @@ func (f *OperationFunction) execOperation(i int) error {
 			}
 		}
 
-		err = f.Drv.SetVirtualMediaImageAndAdjustBootOrder(f.Bmh.Spec.Image.URL)
+		err = f.Drv.SetVirtualMediaImage(f.Bmh.Spec.Image.URL)
+		if err != nil {
+			return err
+		}
+
+		err = f.Drv.AdjustBootOrder()
 		if err != nil {
 			return err
 		}
