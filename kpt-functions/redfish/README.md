@@ -1,4 +1,4 @@
-# Redfish ISO started
+# Redfish ISO bootstrapper
 
 This is an example implements a function that reads the metal3 BareMetalHost
 related configuration from ResourceList.items and performs operations,
