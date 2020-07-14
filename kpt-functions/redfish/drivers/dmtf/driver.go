@@ -123,6 +123,7 @@ func (d *Driver) Init(config *redfish.DriverConfig) error {
 		Transport: transport,
 	}
 
+	d.DrvConfig = config
 	d.Config = cfg
 	d.Api = redfishClient.NewAPIClient(cfg).DefaultApi
 
