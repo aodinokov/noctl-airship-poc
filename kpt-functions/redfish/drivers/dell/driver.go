@@ -21,19 +21,18 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
-	redfishAPI "opendev.org/airship/go-redfish/api"
 	redfishClient "opendev.org/airship/go-redfish/client"
 
-	"opendev.org/airship/airshipctl/pkg/log"
-	"opendev.org/airship/airshipctl/pkg/remote/redfish"
+	"github.com/aodinokov/noctl-airship-poc/kpt-functions/redfish"
+	"github.com/aodinokov/noctl-airship-poc/kpt-functions/redfish/drivers/dmtf"
 )
 
+// Dell specific part of client API
 const (
 	// ClientType is used by other packages as the identifier of the Redfish client.
-	ClientType           = "redfish-dell"
-	endpointImportSysCFG = "%s/redfish/v1/Managers/%s/Actions/Oem/EID_674_Manager.ImportSystemConfiguration"
-	vCDBootRequestBody   = `{
+	vCDBootRequestBody = `{
 	    "ShareParameters": {
 	        "Target": "ALL"
 	    },
@@ -46,14 +45,6 @@ const (
 	                     </SystemConfiguration>"
 	}`
 )
-
-// Client is a wrapper around the standard airshipctl Redfish client. This allows vendor specific Redfish clients to
-// override methods without duplicating the entire client.
-type Client struct {
-	redfish.Client
-	RedfishAPI redfishAPI.RedfishAPI
-	RedfishCFG *redfishClient.Configuration
-}
 
 type iDRACAPIRespErr struct {
 	Err iDRACAPIErr `json:"error"`
@@ -70,24 +61,23 @@ type iDRACAPIExtendedInfo struct {
 	Resolution string `json:"Resolution,omitempty"`
 }
 
-// SetBootSourceByType sets the boot source of the ephemeral node to a virtual CD, "VCD-DVD".
-func (c *Client) SetBootSourceByType(ctx context.Context) error {
-	log.Debug("Setting boot device to 'VCD-DVD'.")
-	managerID, err := redfish.GetManagerID(ctx, c.RedfishAPI, c.NodeID())
-	if err != nil {
-		log.Debugf("Failed to retrieve manager ID for node '%s'.", c.NodeID())
-		return err
-	}
+type Driver struct {
+	dmtf.Driver
+	BasePath string
+}
 
+func (d *Driver) ImportManagerSystemConfigurationForVCDDVD(managerId string) error {
+	ctx := d.UpdateContext(context.Background())
 	// NOTE(drewwalters96): Setting the boot device to a virtual media type requires an API request to the iDRAC
 	// actions API. The request is made below using the same HTTP client used by the Redfish API and exposed by the
 	// standard airshipctl Redfish client. Only iDRAC 9 >= 3.3 is supports this endpoint.
-	url := fmt.Sprintf(endpointImportSysCFG, c.RedfishCFG.BasePath, managerID)
+	url := fmt.Sprintf("%s/redfish/v1/Managers/%s/Actions/Oem/EID_674_Manager.ImportSystemConfiguration",
+		d.BasePath,
+		managerId)
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewBufferString(vCDBootRequestBody))
 	if err != nil {
 		return err
 	}
-
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
 
@@ -95,49 +85,51 @@ func (c *Client) SetBootSourceByType(ctx context.Context) error {
 		req.SetBasicAuth(auth.UserName, auth.Password)
 	}
 
-	httpResp, err := c.RedfishCFG.HTTPClient.Do(req)
+	httpResp, err := d.Config.HTTPClient.Do(req)
 	if httpResp.StatusCode != http.StatusAccepted {
 		body, ok := ioutil.ReadAll(httpResp.Body)
 		if ok != nil {
-			log.Debugf("Malformed iDRAC response: %s", body)
-			return redfish.ErrRedfishClient{Message: "Unable to set boot device. Malformed iDRAC response."}
+			return fmt.Errorf("unable to set boot device. Malformed iDRAC response.")
 		}
-
 		var iDRACResp iDRACAPIRespErr
 		ok = json.Unmarshal(body, &iDRACResp)
 		if ok != nil {
-			log.Debugf("Malformed iDRAC response: %s", body)
-			return redfish.ErrRedfishClient{Message: "Unable to set boot device. Malformed iDrac response."}
+			return fmt.Errorf("unable to set boot device. Can't unmarshal iDRAC response.")
 		}
-
-		return redfish.ErrRedfishClient{
-			Message: fmt.Sprintf("Unable to set boot device. %s", iDRACResp.Err.ExtendedInfo[0]),
-		}
+		return fmt.Errorf("unable to set boot device. %s", iDRACResp.Err.ExtendedInfo[0])
 	} else if err != nil {
-		return redfish.ErrRedfishClient{Message: fmt.Sprintf("Unable to set boot device. %v", err)}
+		return fmt.Errorf("Unable to set boot device. %v", err)
 	}
-
-	log.Debug("Successfully set boot device.")
 	defer httpResp.Body.Close()
-
 	return nil
 }
 
-// NewClient returns a client with the capability to make Redfish requests.
-func NewClient(redfishURL string,
-	insecure bool,
-	useProxy bool,
-	username string,
-	password string,
-	systemActionRetries int,
-	systemRebootDelay int) (context.Context, *Client, error) {
-	ctx, genericClient, err := redfish.NewClient(redfishURL, insecure, useProxy, username, password,
-		systemActionRetries, systemRebootDelay)
+// Overriding dmtf AdjustBootOrder fn
+func (d *Driver) AdjustBootOrder() error {
+	mgrId, err := d.ManagerId()
 	if err != nil {
-		return ctx, nil, err
+		return err
+	}
+	return d.ImportManagerSystemConfigurationForVCDDVD(mgrId)
+}
+
+func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
+	d := Driver{}
+
+	url, err := url.Parse(config.BMC.URL)
+	if err != nil {
+		return nil, err
 	}
 
-	c := &Client{*genericClient, genericClient.RedfishAPI, genericClient.RedfishCFG}
+	d.BasePath, err = dmtf.BasePath(url)
+	if err != nil {
+		return nil, err
+	}
 
-	return ctx, c, nil
+	err = d.Driver.Init(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &d, nil
 }

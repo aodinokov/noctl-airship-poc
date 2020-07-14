@@ -30,10 +30,11 @@ import (
 )
 
 type Driver struct {
-	Config   *redfish.DriverConfig
-	Api      redfishAPI.RedfishAPI
-	SystemId string
-	mgrId    string
+	DrvConfig *redfish.DriverConfig
+	Config    *redfishClient.Configuration
+	Api       redfishAPI.RedfishAPI
+	SystemId  string
+	mgrId     string
 }
 
 func BasePath(url *url.URL) (string, error) {
@@ -75,24 +76,26 @@ func MediaId(url *url.URL) (string, error) {
 	return ResourceId(url /*TODO:*/, "")
 }
 
-func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
-	drv := Driver{Config: config}
+func (d *Driver) Init(config *redfish.DriverConfig) error {
+	if d.DrvConfig != nil {
+		return fmt.Errorf("Driver is already initialized")
+	}
 
 	url, err := url.Parse(config.BMC.URL)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	cfg := redfishClient.NewConfiguration()
 
 	cfg.BasePath, err = BasePath(url)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	drv.SystemId, err = SystemId(url)
+	d.SystemId, err = SystemId(url)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if config.UserAgent != nil {
@@ -120,8 +123,19 @@ func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
 		Transport: transport,
 	}
 
-	drv.Api = redfishClient.NewAPIClient(cfg).DefaultApi
+	d.Config = cfg
+	d.Api = redfishClient.NewAPIClient(cfg).DefaultApi
 
+	return nil
+}
+
+func NewDriver(config *redfish.DriverConfig) (redfish.Driver, error) {
+	drv := Driver{}
+
+	err := drv.Init(config)
+	if err != nil {
+		return nil, err
+	}
 	return &drv, nil
 }
 
@@ -371,10 +385,6 @@ func (d *Driver) EnsureVirtualMediaInserted(mediaId string, desiredInsertedValue
 	return fmt.Errorf("system hasn't reached desired inserted value %v", desiredInsertedValue)
 }
 
-//func (d *Driver) setBootSource(mediaId string) error {
-//	return nil
-//}
-
 // api wrappers
 func (d *Driver) GetSystem() (*redfishClient.ComputerSystem, error) {
 	ctx := d.UpdateContext(context.Background())
@@ -474,13 +484,13 @@ func (d *Driver) InsertVirtualMedia(mediaId string, r *redfishClient.InsertMedia
 }
 
 func (d *Driver) UpdateContext(ctx context.Context) context.Context {
-	if d.Config.BMC.Username != "" && d.Config.BMC.Password != "" {
+	if d.DrvConfig.BMC.Username != "" && d.DrvConfig.BMC.Password != "" {
 		ctx = context.WithValue(
 			ctx,
 			redfishClient.ContextBasicAuth,
 			redfishClient.BasicAuth{
-				UserName: d.Config.BMC.Username,
-				Password: d.Config.BMC.Password},
+				UserName: d.DrvConfig.BMC.Username,
+				Password: d.DrvConfig.BMC.Password},
 		)
 	}
 	return ctx
