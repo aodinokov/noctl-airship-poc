@@ -22,6 +22,36 @@ a:
 			InField:     "a.b.c",
 			ExpectedVal: "value",
 		},
+		{
+			InYaml: `
+a:
+  b:
+    c: value
+`,
+			InField:     ".a.b.c",
+			ExpectedVal: "value",
+		},
+		{
+			InYaml: `
+a:
+  b: |
+    c:
+      d: innerValue
+`,
+			InField:     ".a.b|c.d",
+			ExpectedVal: "innerValue",
+		},
+		{
+			InYaml: `
+a:
+  b: |
+    c:
+      d: innerValue1
+      e: "f: innerValue2"
+`,
+			InField:     "a.b|c.e|f",
+			ExpectedVal: "innerValue2",
+		},
 	}
 
 	for _, ti := range ts {

@@ -230,7 +230,6 @@ func getFieldValue(node *yaml.RNode, fieldRef string) (string, error) {
 	var value string
 	parts := strings.Split(fieldRef, "|")
 	for i, path := range parts {
-		// TODO: remove first empty elemen if any
 		v, err := node.Pipe(yaml.PathGetter{Path: strings.Split(path, ".")})
 		if err != nil {
 			return "", err
