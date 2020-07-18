@@ -3,6 +3,8 @@ package replacement
 import (
 	"fmt"
 
+	"sigs.k8s.io/kustomize/kyaml/kio"
+	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -128,10 +130,97 @@ func (f *Function) Exec(items []*yaml.RNode) error {
 }
 
 func prepareSource(items []*yaml.RNode, s *Source) (string, error) {
-//	if 
+	if s.Value != "" {
+		return s.Value, nil
+	}
+	if s.ObjRef != nil {
+		node, err := s.ObjRef.FindOne(items)
+		if err != nil {
+			return "", err
+		}
+
+		fieldRef := s.FieldRef
+		if fieldRef == "" {
+			fieldRef = ".metadata.name"
+		}
+
+		fmt.Printf("node %v", node)
+		// TODO: get field value
+	}
 	return "", nil
 }
 
 func apply(items []*yaml.RNode, source string, t *Target) error {
 	return nil
+}
+
+func (g *Gvk) Filters() ([]kio.Filter, error) {
+	flts := []kio.Filter{}
+	if g.Group != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"group"}, Value: g.Group})
+	}
+	if g.Version != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"version"}, Value: g.Version})
+	}
+	if g.Kind != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"kind"}, Value: g.Kind})
+	}
+	return flts, nil
+}
+
+func (s *SourceObjRef) Filters() ([]kio.Filter, error) {
+	flts := []kio.Filter{}
+	if s.APIVersion != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"apiVersion"}, Value: s.APIVersion})
+	}
+
+	gflts, err := s.Gvk.Filters()
+	if err != nil {
+		return nil, err
+	}
+	flts = append(flts, gflts...)
+
+	if s.Name != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"metadata", "name"}, Value: s.Name})
+	}
+	if s.Namespace != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"metadata", "namespace"}, Value: s.Namespace})
+	}
+	return flts, nil
+}
+
+func (s *SourceObjRef) FindOne(items []*yaml.RNode) (*yaml.RNode, error) {
+	flts, err := s.Filters()
+	if err != nil {
+		return nil, err
+	}
+
+	matching, err := findMatching(items, flts)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(matching) > 1 {
+		return nil, fmt.Errorf("found more than one resources matching from %v", s)
+	}
+
+	if len(matching) == 0 {
+		return nil, fmt.Errorf("failed to find one resource matching from %v", s)
+	}
+
+	return matching[0], nil
+}
+
+func findMatching(items []*yaml.RNode, flts []kio.Filter) ([]*yaml.RNode, error) {
+	p := kio.Pipeline{
+		Inputs:  []kio.Reader{&kio.PackageBuffer{Nodes: items}},
+		Filters: flts,
+		Outputs: []kio.Writer{&kio.PackageBuffer{}},
+	}
+
+	err := p.Execute()
+	if err != nil {
+		return nil, err
+	}
+	return p.Outputs[0].(*kio.PackageBuffer).Nodes, nil
 }
