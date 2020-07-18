@@ -53,10 +53,10 @@ type SourceObjRef struct {
 //  - from a several sources and go template
 //  - from a string
 type Source struct {
+	Value string `json:"value,omitempty" yaml:"value,omitempty"`
+
 	ObjRef   *SourceObjRef `json:"objref,omitempty" yaml:"objref,omitempty"`
 	FieldRef string        `json:"fieldref,omitempty" yaml:"fiedldref,omitempty"`
-
-	Value string `json:"value,omitempty" yaml:"value,omitempty"`
 
 	Multiref *struct {
 		Sources []struct {
@@ -145,8 +145,14 @@ func prepareSource(items []*yaml.RNode, s *Source) (string, error) {
 			fieldRef = ".metadata.name"
 		}
 
-		fmt.Printf("node %v", node)
-		// TODO: get field value
+		v, err := getFieldValue(node, fieldRef)
+		if err != nil {
+			return "", err
+		}
+		return v, nil
+	}
+	if s.Multiref != nil {
+		// TODO:
 	}
 	return "", nil
 }
