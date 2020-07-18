@@ -2,6 +2,7 @@ package replacement
 
 import (
 	"fmt"
+	"strings"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
@@ -223,4 +224,26 @@ func findMatching(items []*yaml.RNode, flts []kio.Filter) ([]*yaml.RNode, error)
 		return nil, err
 	}
 	return p.Outputs[0].(*kio.PackageBuffer).Nodes, nil
+}
+
+func getFieldValue(node *yaml.RNode, fieldRef string) (string, error) {
+	var value string
+	parts := strings.Split(fieldRef, "|")
+	for i, path := range parts {
+		// TODO: remove first empty elemen if any
+		v, err := node.Pipe(yaml.PathGetter{Path: strings.Split(path, ".")})
+		if err != nil {
+			return "", err
+		}
+		if v != nil {
+			value = yaml.GetValue(v)
+			if i+1 < len(parts) {
+				node, err = yaml.Parse(value)
+				if err != nil {
+					return "", err
+				}
+			}
+		}
+	}
+	return value, nil
 }
