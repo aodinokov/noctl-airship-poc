@@ -121,14 +121,14 @@ func NewFunction(cfg *FunctionConfig) (*Function, error) {
 
 func (f *Function) Exec(items []*yaml.RNode) error {
 	for _, r := range f.Config.Replacements {
-		source, err := prepareSource(items, r.Source)
+		value, err := prepareValue(items, r.Source)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("The source is %s\n", source)
+		fmt.Printf("The value is %s\n", value)
 
-		err = apply(items, source, r.Target)
+		err = apply(items, r.Target, value)
 		if err != nil {
 			return err
 		}
@@ -136,20 +136,20 @@ func (f *Function) Exec(items []*yaml.RNode) error {
 	return nil
 }
 
-func prepareSource(items []*yaml.RNode, s *Source) (string, error) {
+func prepareValue(items []*yaml.RNode, s *Source) (string, error) {
 	if s.Value != "" {
 		return s.Value, nil
 	}
 	if s.ObjRef != nil {
-		return prepareSourceWithObjRefFieldRef(items, s.ObjRef, s.FieldRef)
+		return prepareValueFromObjRefFieldRef(items, s.ObjRef, s.FieldRef)
 	}
 	if s.MultiRef != nil {
-		return prepareSourceWithMultiRef(items, s.MultiRef)
+		return prepareValueFromMultiRef(items, s.MultiRef)
 	}
 	return "", nil
 }
 
-func prepareSourceWithObjRefFieldRef(
+func prepareValueFromObjRefFieldRef(
 	items []*yaml.RNode, objRef *SourceObjRef, fieldRef string) (string, error) {
 
 	node, err := objRef.FindOne(items)
@@ -166,19 +166,19 @@ func prepareSourceWithObjRefFieldRef(
 	return v, nil
 }
 
-func prepareSourceWithMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (string, error) {
-	values := struct {
-		Sources []string
+func prepareValueFromMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (string, error) {
+	data := struct {
+		Values []string
 	}{
-		Sources: make([]string, 0, len(m.Refs)),
+		Values: make([]string, 0, len(m.Refs)),
 	}
 	for i := range m.Refs {
-		s, err := prepareSourceWithObjRefFieldRef(
+		v, err := prepareValueFromObjRefFieldRef(
 			items, m.Refs[i].ObjRef, m.Refs[i].FieldRef)
 		if err != nil {
 			return "", fmt.Errorf("error preparing multiref %v ref %d: %w", m, i, err)
 		}
-		values.Sources = append(values.Sources, s)
+		data.Values = append(data.Values, v)
 	}
 
 	var out bytes.Buffer
@@ -187,16 +187,29 @@ func prepareSourceWithMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (strin
 		return "", fmt.Errorf("error parsing template %s: %w", m.Template, err)
 	}
 
-	err = tmpl.Execute(&out, values)
+	err = tmpl.Execute(&out, data)
 	if err != nil {
-		return "", fmt.Errorf("error executing template %s, values %v: %w",
-			m.Template, values, err)
+		return "", fmt.Errorf("error executing template %s, data %v: %w",
+			m.Template, data, err)
 	}
 
 	return out.String(), nil
 }
 
-func apply(items []*yaml.RNode, source string, t *Target) error {
+func apply(items []*yaml.RNode, t *Target, value string) error {
+	matching, err := t.ObjRef.Filter(items)
+	if err != nil {
+		return fmt.Errorf("error filtering by objref %v: %w", t.ObjRef, err)
+	}
+	for _, node := range matching {
+		for _, fieldref := range t.FieldRefs {
+			err := setFieldValue(node, fieldref, value)
+			if err != nil {
+				return fmt.Errorf("error setting value for objref %v, fieldref %s, value %s, node %v: %w",
+					t.ObjRef, fieldref, value, node, err)
+			}
+		}
+	}
 	return nil
 }
 
@@ -232,6 +245,14 @@ func (s *Selector) Filters() ([]kio.Filter, error) {
 		//TODO: flts = append(flts, LabelFilter{Path: []string{"metadata", "labels"}, Value: s.LabelSelector})
 	}
 	return flts, nil
+}
+
+func (s *Selector) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
+	flts, err := s.Filters()
+	if err != nil {
+		return nil, err
+	}
+	return findMatching(items, flts)
 }
 
 func (s *SourceObjRef) Filters() ([]kio.Filter, error) {
@@ -310,4 +331,8 @@ func getFieldValue(node *yaml.RNode, fieldRef string) (string, error) {
 		}
 	}
 	return value, nil
+}
+
+func setFieldValue(node *yaml.RNode, fieldRef string, value string) error {
+	return nil
 }
