@@ -14,6 +14,13 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+/*
+TODOs:
+1. label filter
+2. support string and rnode values (get/set)
+3. move all tests from replacement plugin here
+*/
+
 var (
 	// substring substitutions are appended to paths as: ...%VARNAME%
 	substringPatternRegex = regexp.MustCompile(`(\S+)%(\S+)%$`)
