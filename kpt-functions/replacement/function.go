@@ -390,7 +390,6 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value string) er
 		}
 		return node.PipeE(yaml.FieldSetter{StringValue: s})
 
-
 	}
 	v, err := node.Pipe(yaml.LookupCreate(yaml.ScalarNode, strings.Split(fieldRefPart[0], ".")...))
 	if err != nil {

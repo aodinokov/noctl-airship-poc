@@ -57,7 +57,7 @@ a:
 	for _, ti := range ts {
 		node, err := yaml.Parse(ti.InYaml)
 		if err != nil {
-			t.Errorf("wasn't able to parse inYaml %s, trying to continue", ti.InYaml)
+			t.Errorf("wasn't able to parse inYaml %s: %v, trying to continue", ti.InYaml, err)
 			continue
 		}
 
@@ -66,7 +66,7 @@ a:
 			continue
 		}
 		if err != nil {
-			t.Errorf("didn't expect error for field: %s yaml %s", ti.InField, ti.InYaml)
+			t.Errorf("didn't expect error for field: %s yaml %s: %v", ti.InField, ti.InYaml, err)
 		}
 		if val != ti.ExpectedVal {
 			t.Errorf("unexpected value %s for field: %s yaml %s. Expected %s",
@@ -74,4 +74,52 @@ a:
 		}
 	}
 
+}
+
+func TestSetFieldValue(t *testing.T) {
+	ts := []struct {
+		InYaml        string
+		InField       string
+		InValue       string
+		ExpectedError bool
+		ExpectedYaml  string
+	}{
+		{
+			InYaml: `
+a:
+  b:
+    c: value
+`,
+			InField: "a.b.c",
+			InValue: "newvalue",
+			ExpectedYaml: `
+a:
+  b:
+    c: newvalue
+`,
+		},
+	}
+
+	for _, ti := range ts {
+		node, err := yaml.Parse(ti.InYaml)
+		if err != nil {
+			t.Errorf("wasn't able to parse inYaml %s: %v, trying to continue", ti.InYaml, err)
+			continue
+		}
+		err = setFieldValue(node, ti.InField, ti.InValue)
+		if err != nil && ti.ExpectedError {
+			continue
+		}
+		if err != nil {
+			t.Errorf("didn't expect error for field: %s yaml %s: %v", ti.InField, ti.InYaml, err)
+		}
+		resYaml, err := node.String()
+		if err != nil {
+			t.Errorf("got unexpected error converting node back for inYaml %s: %v", ti.InYaml, err)
+			continue
+		}
+		if resYaml != ti.ExpectedYaml[1:] {
+			t.Errorf("expected \n%s, got \n%s", ti.ExpectedYaml, resYaml)
+		}
+	}
 }
