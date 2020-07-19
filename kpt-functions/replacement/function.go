@@ -16,7 +16,7 @@ import (
 
 /*
 TODOs:
-1. label filter
+1. label filter - done
 2. support string and rnode values (get/set)
 3. move all tests from replacement plugin here
 */
@@ -252,10 +252,10 @@ func (s *Selector) Filters() ([]kio.Filter, error) {
 		flts = append(flts, filters.GrepFilter{Path: []string{"metadata", "namespace"}, Value: s.Namespace})
 	}
 	if s.AnnotationSelector != "" {
-		//TODO: flts = append(flts, LabelFilter{Path: []string{"metadata", "annotations"}, Value: s.AnnotationSelector})
+		flts = append(flts, LabelFilter{Path: []string{"metadata", "annotations"}, Selector: s.AnnotationSelector})
 	}
 	if s.LabelSelector != "" {
-		//TODO: flts = append(flts, LabelFilter{Path: []string{"metadata", "labels"}, Value: s.LabelSelector})
+		flts = append(flts, LabelFilter{Path: []string{"metadata", "labels"}, Selector: s.LabelSelector})
 	}
 	return flts, nil
 }
