@@ -175,6 +175,26 @@ func (g *Gvk) Filters() ([]kio.Filter, error) {
 	return flts, nil
 }
 
+func (s *Selector) Filters() ([]kio.Filter, error) {
+	flts, err := s.Gvk.Filters()
+	if err != nil {
+		return nil, err
+	}
+	if s.Name != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"metadata", "name"}, Value: s.Name})
+	}
+	if s.Namespace != "" {
+		flts = append(flts, filters.GrepFilter{Path: []string{"metadata", "namespace"}, Value: s.Namespace})
+	}
+	if s.AnnotationSelector != "" {
+		//TODO: flts = append(flts, LabelFilter{Path: []string{"metadata", "annotations"}, Value: s.AnnotationSelector})
+	}
+	if s.LabelSelector != "" {
+		//TODO: flts = append(flts, LabelFilter{Path: []string{"metadata", "labels"}, Value: s.LabelSelector})
+	}
+	return flts, nil
+}
+
 func (s *SourceObjRef) Filters() ([]kio.Filter, error) {
 	flts := []kio.Filter{}
 	if s.APIVersion != "" {
