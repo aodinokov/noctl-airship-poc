@@ -1,8 +1,12 @@
 package replacement
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
+	"text/template"
+
+	"github.com/Masterminds/sprig"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
@@ -47,6 +51,14 @@ type SourceObjRef struct {
 	Namespace  string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 }
 
+type MultiSourceObjRef struct {
+	Refs []struct {
+		ObjRef   *SourceObjRef `json:"objref" yaml:"objref"`
+		FieldRef string        `json:"fieldref" yaml:"fiedldref"`
+	} `json:"refs,omitempty" yaml:"refs,omitempty"`
+	Template string `json:"template" yaml:"template"`
+}
+
 // Source defines where a substitution is from
 // It can from two different kinds of sources
 //  - from a field of one resource
@@ -58,13 +70,7 @@ type Source struct {
 	ObjRef   *SourceObjRef `json:"objref,omitempty" yaml:"objref,omitempty"`
 	FieldRef string        `json:"fieldref,omitempty" yaml:"fiedldref,omitempty"`
 
-	Multiref *struct {
-		Sources []struct {
-			ObjRef   *SourceObjRef `json:"objref" yaml:"objref"`
-			FieldRef string        `json:"fieldref" yaml:"fiedldref"`
-		}
-		Template string `json:"template" yaml:"template"`
-	} `json:"multiref,omitempty" yaml:"multiref,omitempty"`
+	MultiRef *MultiSourceObjRef `json:"multiref,omitempty" yaml:"multiref,omitempty"`
 }
 
 // ReplTarget defines where a substitution is to.
@@ -101,7 +107,7 @@ func NewFunction(cfg *FunctionConfig) (*Function, error) {
 		if r.Source.Value != "" {
 			count += 1
 		}
-		if r.Source.Multiref != nil {
+		if r.Source.MultiRef != nil {
 			count += 1
 		}
 		if count > 1 {
@@ -135,26 +141,59 @@ func prepareSource(items []*yaml.RNode, s *Source) (string, error) {
 		return s.Value, nil
 	}
 	if s.ObjRef != nil {
-		node, err := s.ObjRef.FindOne(items)
-		if err != nil {
-			return "", err
-		}
-
-		fieldRef := s.FieldRef
-		if fieldRef == "" {
-			fieldRef = ".metadata.name"
-		}
-
-		v, err := getFieldValue(node, fieldRef)
-		if err != nil {
-			return "", err
-		}
-		return v, nil
+		return prepareSourceWithObjRefFieldRef(items, s.ObjRef, s.FieldRef)
 	}
-	if s.Multiref != nil {
-		// TODO:
+	if s.MultiRef != nil {
+		return prepareSourceWithMultiRef(items, s.MultiRef)
 	}
 	return "", nil
+}
+
+func prepareSourceWithObjRefFieldRef(
+	items []*yaml.RNode, objRef *SourceObjRef, fieldRef string) (string, error) {
+
+	node, err := objRef.FindOne(items)
+	if err != nil {
+		return "", err
+	}
+	if fieldRef == "" {
+		fieldRef = ".metadata.name"
+	}
+	v, err := getFieldValue(node, fieldRef)
+	if err != nil {
+		return "", err
+	}
+	return v, nil
+}
+
+func prepareSourceWithMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (string, error) {
+	values := struct {
+		Sources []string
+	}{
+		Sources: make([]string, 0, len(m.Refs)),
+	}
+	for i := range m.Refs {
+		s, err := prepareSourceWithObjRefFieldRef(
+			items, m.Refs[i].ObjRef, m.Refs[i].FieldRef)
+		if err != nil {
+			return "", fmt.Errorf("error preparing multiref %v ref %d: %w", m, i, err)
+		}
+		values.Sources = append(values.Sources, s)
+	}
+
+	var out bytes.Buffer
+	tmpl, err := template.New("tmpl").Funcs(sprig.TxtFuncMap()).Parse(m.Template)
+	if err != nil {
+		return "", fmt.Errorf("error parsing template %s: %w", m.Template, err)
+	}
+
+	err = tmpl.Execute(&out, values)
+	if err != nil {
+		return "", fmt.Errorf("error executing template %s, values %v: %w",
+			m.Template, values, err)
+	}
+
+	return out.String(), nil
 }
 
 func apply(items []*yaml.RNode, source string, t *Target) error {
