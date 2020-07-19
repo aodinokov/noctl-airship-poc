@@ -98,6 +98,24 @@ a:
     c: newvalue
 `,
 		},
+		{
+			InYaml: `
+a:
+  b:
+    c: |
+      d:
+        e: value
+`,
+			InField: "a.b.c|d.e",
+			InValue: "newvalue",
+			ExpectedYaml: `
+a:
+  b:
+    c: |
+      d:
+        e: newvalue
+`,
+		},
 	}
 
 	for _, ti := range ts {
