@@ -3,6 +3,7 @@ package replacement
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -11,6 +12,11 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/kio/filters"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+)
+
+var (
+	// substring substitutions are appended to paths as: ...%VARNAME%
+	substringPatternRegex = regexp.MustCompile(`(\S+)%(\S+)%$`)
 )
 
 // Gvk identifies a Kubernetes API type.
@@ -334,5 +340,61 @@ func getFieldValue(node *yaml.RNode, fieldRef string) (string, error) {
 }
 
 func setFieldValue(node *yaml.RNode, fieldRef string, value string) error {
-	return nil
+	// fieldref can contain substtringpattern for regexp - we need to get it
+	substringPattern := ""
+	groups := substringPatternRegex.FindStringSubmatch(fieldRef)
+	if len(groups) == 3 {
+		fieldRef = groups[1]
+		substringPattern = groups[2]
+
+		// calculate real value
+		v, err := getFieldValue(node, fieldRef)
+		if err != nil {
+			return fmt.Errorf("wasn't able to get value for node %v, fieldref %s",
+				node, fieldRef)
+		}
+
+		p := regexp.MustCompile(substringPattern)
+		if !p.MatchString(v) {
+			return fmt.Errorf("wasn't able to match pattern %s with value %s",
+				substringPattern, v)
+		}
+		value = p.ReplaceAllString(v, value)
+	}
+
+	return setFieldValueImpl(node, strings.Split(fieldRef, "|"), value)
+}
+
+func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value string) error {
+	if len(fieldRefPart) > 1 {
+		// this can be done only for string field
+		v, err := node.Pipe(yaml.Lookup(strings.Split(fieldRefPart[0], ".")...))
+		if err != nil {
+			return err
+		}
+		if v == nil {
+			return fmt.Errorf("wasn't able to find value for fieldref %s", fieldRefPart[0])
+		}
+		value = yaml.GetValue(v)
+		includedNode, err := yaml.Parse(value)
+		if err != nil {
+			return fmt.Errorf("wasn't able to parse yaml value for fieldref %s", fieldRefPart[0])
+		}
+		err = setFieldValueImpl(includedNode, fieldRefPart[1:], value)
+		if err != nil {
+			return err
+		}
+		s, err := includedNode.String()
+		if err != nil {
+			return err
+		}
+		return node.PipeE(yaml.FieldSetter{StringValue: s})
+
+
+	}
+	v, err := node.Pipe(yaml.LookupCreate(yaml.ScalarNode, strings.Split(fieldRefPart[0], ".")...))
+	if err != nil {
+		return err
+	}
+	return v.PipeE(yaml.FieldSetter{StringValue: value})
 }
