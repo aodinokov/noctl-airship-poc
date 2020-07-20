@@ -7,6 +7,8 @@ import (
 	"strings"
 	"text/template"
 
+	"log"
+
 	"github.com/Masterminds/sprig"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -16,9 +18,9 @@ import (
 
 /*
 TODOs:
-1. label filter - done
-2. support string and rnode values (get/set) - done
-3. move all tests from replacement plugin here
+1. move all tests from replacement plugin here
+2. lookup doesn't work with index.
+3. if there is a . in the [] the path will be splitted incorrectly
 */
 
 var (
@@ -81,7 +83,7 @@ type Source struct {
 	Value string `json:"value,omitempty" yaml:"value,omitempty"`
 
 	ObjRef   *SourceObjRef `json:"objref,omitempty" yaml:"objref,omitempty"`
-	FieldRef string        `json:"fieldref,omitempty" yaml:"fiedldref,omitempty"`
+	FieldRef string        `json:"fieldref,omitempty" yaml:"fieldref,omitempty"`
 
 	MultiRef *MultiSourceObjRef `json:"multiref,omitempty" yaml:"multiref,omitempty"`
 }
@@ -402,7 +404,8 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value interface{
 	//defer log.Printf("exit setFieldValueImpl %s %v %s", ds, fieldRefPart, value)
 	if len(fieldRefPart) > 1 {
 		// this can be done only for string field
-		v, err := node.Pipe(yaml.Lookup(strings.Split(fieldRefPart[0], ".")...))
+		//v, err := node.Pipe(yaml.Lookup(strings.Split(fieldRefPart[0], ".")...))
+		v, err := node.Pipe(yaml.PathGetter{Path: strings.Split(fieldRefPart[0], ".")})
 		if err != nil {
 			return fmt.Errorf("wasn't able to lookup %s: %w", fieldRefPart[0], err)
 		}
@@ -433,13 +436,15 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value interface{
 
 	svalue, ok := value.(string)
 	if ok {
-		v, err := node.Pipe(yaml.LookupCreate(yaml.ScalarNode, strings.Split(fieldRefPart[0], ".")...))
+		log.Printf("looking for %s", fieldRefPart[0])
+		v, err := node.Pipe(yaml.PathGetter{Path: strings.Split(fieldRefPart[0], ".")})
 		if err != nil {
-			return fmt.Errorf("wasn't able to lookupCreate %s: %w", fieldRefPart[0], err)
+			return fmt.Errorf("scalar case: wasn't able to lookup %v: %w", strings.Split(fieldRefPart[0], "."), err)
 		}
+		log.Printf("found %s", yaml.GetValue(v))
 		err = v.PipeE(yaml.FieldSetter{StringValue: svalue})
 		if err != nil {
-			return fmt.Errorf("fieldsetter returned error for %s: %w", fieldRefPart[0], err)
+			return fmt.Errorf("scalar case: fieldsetter returned error for %s: %w", fieldRefPart[0], err)
 		}
 		return nil
 	}
