@@ -17,7 +17,7 @@ import (
 /*
 TODOs:
 1. label filter - done
-2. support string and rnode values (get/set)
+2. support string and rnode values (get/set) - done
 3. move all tests from replacement plugin here
 */
 
@@ -134,12 +134,15 @@ func NewFunction(cfg *FunctionConfig) (*Function, error) {
 
 func (f *Function) Exec(items []*yaml.RNode) error {
 	for _, r := range f.Config.Replacements {
+
+		var value interface{}
+
 		value, err := prepareValue(items, r.Source)
 		if err != nil {
 			return err
 		}
 
-		fmt.Printf("The value is %s\n", value)
+		fmt.Printf("The value is %v\n", value)
 
 		err = apply(items, r.Target, value)
 		if err != nil {
@@ -149,7 +152,7 @@ func (f *Function) Exec(items []*yaml.RNode) error {
 	return nil
 }
 
-func prepareValue(items []*yaml.RNode, s *Source) (string, error) {
+func prepareValue(items []*yaml.RNode, s *Source) (interface{}, error) {
 	if s.Value != "" {
 		return s.Value, nil
 	}
@@ -163,7 +166,7 @@ func prepareValue(items []*yaml.RNode, s *Source) (string, error) {
 }
 
 func prepareValueFromObjRefFieldRef(
-	items []*yaml.RNode, objRef *SourceObjRef, fieldRef string) (string, error) {
+	items []*yaml.RNode, objRef *SourceObjRef, fieldRef string) (interface{}, error) {
 
 	node, err := objRef.FindOne(items)
 	if err != nil {
@@ -191,7 +194,11 @@ func prepareValueFromMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (string
 		if err != nil {
 			return "", fmt.Errorf("error preparing multiref %v ref %d: %w", m, i, err)
 		}
-		data.Values = append(data.Values, v)
+		sv, ok := v.(string)
+		if !ok {
+			return "", fmt.Errorf("multiref sources can be scalars only")
+		}
+		data.Values = append(data.Values, sv)
 	}
 
 	var out bytes.Buffer
@@ -209,7 +216,7 @@ func prepareValueFromMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (string
 	return out.String(), nil
 }
 
-func apply(items []*yaml.RNode, t *Target, value string) error {
+func apply(items []*yaml.RNode, t *Target, value interface{}) error {
 	matching, err := t.ObjRef.Filter(items)
 	if err != nil {
 		return fmt.Errorf("error filtering by objref %v: %w", t.ObjRef, err)
@@ -325,20 +332,27 @@ func findMatching(items []*yaml.RNode, flts []kio.Filter) ([]*yaml.RNode, error)
 	return p.Outputs[0].(*kio.PackageBuffer).Nodes, nil
 }
 
-func getFieldValue(node *yaml.RNode, fieldRef string) (string, error) {
-	var value string
+func getFieldValue(node *yaml.RNode, fieldRef string) (interface{}, error) {
+	var value interface{}
 	parts := strings.Split(fieldRef, "|")
 	for i, path := range parts {
 		v, err := node.Pipe(yaml.PathGetter{Path: strings.Split(path, ".")})
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if v != nil {
-			value = yaml.GetValue(v)
+			value = v
+
+			if v.YNode().Kind == yaml.ScalarNode {
+				value = yaml.GetValue(v)
+			}
 			if i+1 < len(parts) {
-				node, err = yaml.Parse(value)
+				if v.YNode().Kind != yaml.ScalarNode {
+					return nil, fmt.Errorf("node %v isn't scalar", path)
+				}
+				node, err = yaml.Parse(value.(string))
 				if err != nil {
-					return "", err
+					return nil, err
 				}
 			}
 		}
@@ -346,13 +360,18 @@ func getFieldValue(node *yaml.RNode, fieldRef string) (string, error) {
 	return value, nil
 }
 
-func setFieldValue(node *yaml.RNode, fieldRef string, value string) error {
+func setFieldValue(node *yaml.RNode, fieldRef string, value interface{}) error {
 	// fieldref can contain substtringpattern for regexp - we need to get it
 	substringPattern := ""
 	groups := substringPatternRegex.FindStringSubmatch(fieldRef)
 	if len(groups) == 3 {
 		fieldRef = groups[1]
 		substringPattern = groups[2]
+
+		svalue, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("regex fieldref can be used only with scalar sources")
+		}
 
 		// calculate real value
 		v, err := getFieldValue(node, fieldRef)
@@ -361,18 +380,23 @@ func setFieldValue(node *yaml.RNode, fieldRef string, value string) error {
 				node, fieldRef)
 		}
 
-		p := regexp.MustCompile(substringPattern)
-		if !p.MatchString(v) {
-			return fmt.Errorf("wasn't able to match pattern %s with value %s",
-				substringPattern, v)
+		sv, ok := v.(string)
+		if !ok {
+			return fmt.Errorf("regex fieldref can be used only for scalar fields target: %s", fieldRef)
 		}
-		value = p.ReplaceAllString(v, value)
+
+		p := regexp.MustCompile(substringPattern)
+		if !p.MatchString(sv) {
+			return fmt.Errorf("wasn't able to match pattern %s with value %s",
+				substringPattern, sv)
+		}
+		value = p.ReplaceAllString(sv, svalue)
 	}
 
 	return setFieldValueImpl(node, strings.Split(fieldRef, "|"), value)
 }
 
-func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value string) error {
+func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value interface{}) error {
 	//ds, _ := node.String()
 	//log.Printf("setFieldValueImpl %s %v %s", ds, fieldRefPart, value)
 	//defer log.Printf("exit setFieldValueImpl %s %v %s", ds, fieldRefPart, value)
@@ -406,13 +430,34 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value string) er
 		return nil
 
 	}
-	v, err := node.Pipe(yaml.LookupCreate(yaml.ScalarNode, strings.Split(fieldRefPart[0], ".")...))
-	if err != nil {
-		return fmt.Errorf("wasn't able to lookupCreate %s: %w", fieldRefPart[0], err)
+
+	svalue, ok := value.(string)
+	if ok {
+		v, err := node.Pipe(yaml.LookupCreate(yaml.ScalarNode, strings.Split(fieldRefPart[0], ".")...))
+		if err != nil {
+			return fmt.Errorf("wasn't able to lookupCreate %s: %w", fieldRefPart[0], err)
+		}
+		err = v.PipeE(yaml.FieldSetter{StringValue: svalue})
+		if err != nil {
+			return fmt.Errorf("fieldsetter returned error for %s: %w", fieldRefPart[0], err)
+		}
+		return nil
 	}
-	err = v.PipeE(yaml.FieldSetter{StringValue: value})
-	if err != nil {
-		return fmt.Errorf("fieldsetter returned error for %s: %w", fieldRefPart[0], err)
+	rnode, ok := value.(*yaml.RNode)
+	if ok {
+		path := strings.Split(fieldRefPart[0], ".")
+		v := node
+		if len(path) > 1 {
+			var err error
+			v, err = node.Pipe(yaml.Lookup(path[:len(path)-1]...))
+			if err != nil {
+				return fmt.Errorf("wasn't able to lookup %s: %w", fieldRefPart[0], err)
+			}
+		}
+		err := v.PipeE(yaml.FieldSetter{Name: path[len(path)-1], Value: rnode})
+		if err != nil {
+			return fmt.Errorf("fieldsetter returned error for %s: %w", fieldRefPart[0], err)
+		}
 	}
-	return nil
+	return fmt.Errorf("unexpected value type %v: %T", value, value)
 }
