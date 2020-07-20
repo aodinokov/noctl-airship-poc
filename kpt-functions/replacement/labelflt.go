@@ -17,20 +17,24 @@ func (f LabelFilter) Filter(input []*yaml.RNode) ([]*yaml.RNode, error) {
 
 	for i := range input {
 		node := input[i]
-		val, err := node.Pipe(&yaml.PathMatcher{Path: f.Path})
+		// log.Printf("path %v", f.Path)
+		val, err := node.Pipe(yaml.Lookup(f.Path...))
 		if err != nil {
 			return nil, err
 		}
 
-		if val == nil || len(val.Content()) == 0 {
+		if val == nil || yaml.GetValue(val) == "" {
+			// log.Printf("val is nil of content is empty")
 			continue
 		}
 
+		// log.Printf("value: %s", yaml.GetValue(val))
 		lset, err := labels.ConvertSelectorToLabelsMap(yaml.GetValue(val))
 		if err != nil {
 			return nil, err
 		}
 
+		// log.Printf("lset: %v", lset)
 		s, err := labels.Parse(f.Selector)
 		if err != nil {
 			return nil, err
