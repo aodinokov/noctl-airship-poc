@@ -439,7 +439,7 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value interface{
 	svalue, ok := value.(string)
 	if ok {
 		log.Printf("looking for %s", fieldRefPart[0])
-		v, err := node.Pipe(yaml.PathGetter{Path: strings.Split(fieldRefPart[0], ".")})
+		v, err := node.Pipe(yaml.LookupCreate(yaml.ScalarNode, strings.Split(fieldRefPart[0], ".")...))
 		if err != nil {
 			return fmt.Errorf("scalar case: wasn't able to lookup %v: %w", strings.Split(fieldRefPart[0], "."), err)
 		}
