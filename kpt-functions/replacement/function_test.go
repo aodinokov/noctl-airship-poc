@@ -407,7 +407,7 @@ replacements:
     objref:
       kind: Deployment
     fieldrefs:
-    - spec.template.spec.containers[name=nginx-latest].image%TAG%
+    - spec.template.spec.containers.[name=nginx-latest].image%TAG%
 - source:
     value: postgres:latest
   target:
@@ -440,8 +440,8 @@ spec:
         name: nginx-sha256
       - image: alpine:1.8.0
         name: init-alpine`,
-			expectedOut: `apiVersion: v1
-group: apps
+			expectedOut: `group: apps
+apiVersion: v1
 kind: Deployment
 metadata:
   name: deploy1
@@ -534,7 +534,7 @@ replacements:
     objref:
       kind: Pod
       name: pod
-    fieldref: spec.containers[0]
+    fieldref: spec.containers.[name=repl]
   target:
     objref:
       kind: Deployment

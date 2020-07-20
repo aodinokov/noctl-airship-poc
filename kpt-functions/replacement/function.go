@@ -18,9 +18,11 @@ import (
 
 /*
 TODOs:
-1. move all tests from replacement plugin here
+1. move all tests from replacement plugin here - done for positive tests
 2. lookup doesn't work with index.
 3. if there is a . in the [] the path will be splitted incorrectly
+4. test 2 - doesn't creat non-existing fielss
+5. test 5 - can't add element to array
 */
 
 var (
@@ -459,10 +461,12 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefPart []string, value interface{
 				return fmt.Errorf("wasn't able to lookup %s: %w", fieldRefPart[0], err)
 			}
 		}
+		log.Printf("setting Name %v to %v", path[len(path)-1], path[:len(path)-1])
 		err := v.PipeE(yaml.FieldSetter{Name: path[len(path)-1], Value: rnode})
 		if err != nil {
 			return fmt.Errorf("fieldsetter returned error for %s: %w", fieldRefPart[0], err)
 		}
+		return nil
 	}
 	return fmt.Errorf("unexpected value type %v: %T", value, value)
 }
