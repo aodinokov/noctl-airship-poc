@@ -128,7 +128,8 @@ func TestSetFieldValue(t *testing.T) {
 	ts := []struct {
 		InYaml        string
 		InField       string
-		InValue       string
+		InValueString string
+		InValueYaml   string
 		ExpectedError bool
 		ExpectedYaml  string
 	}{
@@ -139,7 +140,7 @@ a:
     c: value
 `,
 			InField: "a.b.c",
-			InValue: "newvalue",
+			InValueString: "newvalue",
 			ExpectedYaml: `
 a:
   b:
@@ -155,7 +156,7 @@ a:
         e: value
 `,
 			InField: "a.b.c|d.e",
-			InValue: "newvalue",
+			InValueString: "newvalue",
 			ExpectedYaml: `
 a:
   b:
@@ -167,12 +168,31 @@ a:
 	}
 
 	for _, ti := range ts {
+		if ti.InValueString != "" && ti.InValueYaml != ""{
+			t.Errorf("ambigious test with value string %s and yaml %s - skipping", ti.InValueString, ti.InValueYaml)
+			continue
+		}
+
+		var value interface{}
+		if ti.InValueString != "" {
+			value = ti.InValueString
+		}
+		if ti.InValueYaml != "" {
+			node, err := yaml.Parse(ti.InValueYaml)
+			if err != nil {
+				t.Errorf("wasn't able to parse value yaml %s, %v", ti.InValueYaml, err)
+				continue
+			}
+			value = node
+		}
+
 		node, err := yaml.Parse(ti.InYaml)
 		if err != nil {
 			t.Errorf("wasn't able to parse inYaml %s: %v, trying to continue", ti.InYaml, err)
 			continue
 		}
-		err = setFieldValue(node, ti.InField, ti.InValue)
+
+		err = setFieldValue(node, ti.InField, value)
 		if err != nil && ti.ExpectedError {
 			continue
 		}
