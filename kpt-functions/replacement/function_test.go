@@ -462,7 +462,7 @@ spec:
 			continue
 		}
 
-		f:= Function{Config: &fcfg}
+		f := Function{Config: &fcfg}
 		err = f.Exec(nodes)
 		if err != nil && !ti.expectedErr {
 			t.Errorf("exec %d returned unexpected error %v for %s", i, err, ti.cfg)
