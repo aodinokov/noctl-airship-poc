@@ -223,6 +223,44 @@ a:
 			InYaml: `
 a:
   b:
+    c: value
+`,
+			InField:       "a.b.d",
+			InValueString: "newvalue",
+			ExpectedYaml: `
+a:
+  b:
+    c: value
+    d: newvalue
+`,
+		},
+		{
+			InYaml: `
+a:
+  b:
+`,
+			InField: "a.b.d",
+			InValueYaml: `
+e:
+  - name: ng0
+    value: vg0
+  - name: ng1
+    value: vg1
+`,
+			ExpectedYaml: `
+a:
+  b:
+    d:
+    - name: ng0
+      value: vg0
+    - name: ng1
+      value: vg1
+`,
+		},
+		{
+			InYaml: `
+a:
+  b:
     c: |
       d:
         e: value
