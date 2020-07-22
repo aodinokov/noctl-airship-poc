@@ -6,6 +6,66 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
+func TestParseFieldRef(t *testing.T) {
+	ts := []struct {
+		In  string
+		Out []string
+		Err bool
+	}{
+		{
+			In:  `a.b.c`,
+			Out: []string{"a", "b", "c"},
+		},
+		{
+			In:  `a.b[name=x].c`,
+			Out: []string{"a", "b", "[name=x]", "c"},
+		},
+		{
+			In:  `a.b[name=x.y].c`,
+			Out: []string{"a", "b", "[name=x.y]", "c"},
+		},
+		{
+			In:  `a.b.[name=x.y].c`,
+			Out: []string{"a", "b", "[name=x.y]", "c"},
+		},
+		{
+			In:  `a.b[2].c`,
+			Out: []string{"a", "b", "[2]", "c"},
+		},
+		{
+			In:  `a.b.2.c`,
+			Out: []string{"a", "b", "2", "c"},
+		},
+		{
+			In:  `a.b[2.c`,
+			Err: true,
+		},
+	}
+	for _, ti := range ts {
+		x, err := parseFieldRef(ti.In)
+		if err != nil && !ti.Err {
+			t.Errorf("unexpected error for %s: %v", ti.In, err)
+			continue
+		}
+
+		eq := true
+		if len(x) != len(ti.Out) {
+			eq = false
+		}
+		if eq {
+			for i := range x {
+				if x[i] != ti.Out[i] {
+					eq = false
+					break
+				}
+			}
+		}
+		if !eq {
+			t.Errorf("for %s expected %v, got %v", ti.In, ti.Out, x)
+		}
+	}
+}
+
 func TestGetFieldValue(t *testing.T) {
 	ts := []struct {
 		InYaml        string
@@ -139,7 +199,7 @@ a:
   b:
     c: value
 `,
-			InField: "a.b.c",
+			InField:       "a.b.c",
 			InValueString: "newvalue",
 			ExpectedYaml: `
 a:
@@ -155,7 +215,7 @@ a:
       d:
         e: value
 `,
-			InField: "a.b.c|d.e",
+			InField:       "a.b.c|d.e",
 			InValueString: "newvalue",
 			ExpectedYaml: `
 a:
@@ -168,7 +228,7 @@ a:
 	}
 
 	for _, ti := range ts {
-		if ti.InValueString != "" && ti.InValueYaml != ""{
+		if ti.InValueString != "" && ti.InValueYaml != "" {
 			t.Errorf("ambigious test with value string %s and yaml %s - skipping", ti.InValueString, ti.InValueYaml)
 			continue
 		}

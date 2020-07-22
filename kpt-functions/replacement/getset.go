@@ -1,13 +1,55 @@
 package replacement
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"log"
 
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+func parseFieldRef(in string) ([]string, error) {
+	var cur bytes.Buffer
+	out := []string{}
+	var state int
+	for i := 0; i < len(in); {
+		r, size := utf8.DecodeRuneInString(in[i:])
+
+		switch state {
+		case 0: // initial state
+			if r == '.' {
+				if cur.String() != "" {
+					out = append(out, cur.String())
+					cur = bytes.Buffer{}
+				}
+			} else if r == '[' {
+				if cur.String() != "" {
+					out = append(out, cur.String())
+					cur = bytes.Buffer{}
+				}
+				cur.WriteRune(r)
+				state = 1
+			} else {
+				cur.WriteRune(r)
+			}
+		case 1: // state inside []
+			cur.WriteRune(r)
+			if r == ']' {
+				state = 0
+			}
+		}
+		i += size
+	}
+
+	if state != 0 {
+		return nil, fmt.Errorf("unclosed [")
+	}
+
+	return append(out, cur.String()), nil
+}
 
 func getFieldValue(node *yaml.RNode, fieldRef string) (interface{}, error) {
 	var value interface{}
