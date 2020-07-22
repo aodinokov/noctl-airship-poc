@@ -136,6 +136,18 @@ a:
   - c: value2
     d: data2
 `,
+			InField:     "a.b.[1].d",
+			ExpectedVal: "data2",
+		},
+		{
+			InYaml: `
+a:
+  b:
+  - c: value1
+    d: data1
+  - c: value2
+    d: data2
+`,
 			InField:     "a.b.1.d",
 			ExpectedVal: "data2",
 		},

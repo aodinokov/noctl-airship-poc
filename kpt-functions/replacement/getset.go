@@ -3,6 +3,7 @@ package replacement
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -51,32 +52,75 @@ func parseFieldRef(in string) ([]string, error) {
 	return append(out, cur.String()), nil
 }
 
+func seqNodeIndexPath(p string) (int64, error) {
+	if p[0] == '[' && p[len(p)-1] == ']' {
+		p = p[1 : len(p)-1]
+	}
+	i, err := strconv.ParseInt(p, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	if i < 0 {
+		return 0, fmt.Errorf("index can't be negative. got %d", i)
+	}
+	return i, nil
+}
+
 func getFieldValue(node *yaml.RNode, fieldRef string) (interface{}, error) {
-	var value interface{}
-	parts := strings.Split(fieldRef, "|")
-	for i, path := range parts {
-		v, err := node.Pipe(yaml.PathGetter{Path: strings.Split(path, ".")})
+	node, err := getFieldValueImpl(node, strings.Split(fieldRef, "|"))
+	if err != nil {
+		return nil, err
+	}
+	if node.YNode().Kind == yaml.ScalarNode {
+		return yaml.GetValue(node), nil
+	}
+
+	return node, nil
+}
+
+func getFieldValueImpl(node *yaml.RNode, fieldRefs []string) (*yaml.RNode, error) {
+	path, err := parseFieldRef(fieldRefs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	cn := node
+	for _, p := range path {
+
+		// index case
+		if cn.YNode().Kind == yaml.SequenceNode {
+			i, err := seqNodeIndexPath(p)
+			if err == nil {
+				content := cn.Content()
+				if i >= int64(len(content)) {
+					return nil, fmt.Errorf("index %d is too big", i)
+				}
+				cn = yaml.NewRNode(content[i])
+				continue
+			}
+		}
+
+		// default case - use loojup
+		cn, err = cn.Pipe(yaml.Lookup(p))
 		if err != nil {
 			return nil, err
 		}
-		if v != nil {
-			value = v
-
-			if v.YNode().Kind == yaml.ScalarNode {
-				value = yaml.GetValue(v)
-			}
-			if i+1 < len(parts) {
-				if v.YNode().Kind != yaml.ScalarNode {
-					return nil, fmt.Errorf("node %v isn't scalar", path)
-				}
-				node, err = yaml.Parse(value.(string))
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
 	}
-	return value, nil
+
+	if len(fieldRefs) == 1 {
+		return cn, nil
+	}
+
+	if cn.YNode().Kind != yaml.ScalarNode {
+		return nil, fmt.Errorf("node %v isn't scalar", path)
+	}
+
+	node, err = yaml.Parse(yaml.GetValue(cn))
+	if err != nil {
+		return nil, err
+	}
+
+	return getFieldValueImpl(node, fieldRefs[1:])
 }
 
 func setFieldValue(node *yaml.RNode, fieldRef string, value interface{}) error {
