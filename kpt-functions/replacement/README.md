@@ -1,6 +1,9 @@
-# Pod emulator
+# Replacement function
 
-This is an example of implementing a pod emulator function.
+This is an example of implementing a replacement function.
+The feature set is similar to transformer [replacement transformer](https://github.com/kubernetes-sigs/kustomize/tree/master/plugin/someteam.example.com/v1/replacementtransformer)
+but [MultiRef](https://github.com/aodinokov/noctl-airship-poc/blob/master/kpt-functions/replacement/function.go#L87) objects were added that allows to build strings based on several sources and put into several targets, similarly what [kpt-substitutions](https://github.com/kubernetes-sigs/kustomize/blob/master/kyaml/setters2/doc.go#L79) do.
+To be compatible with Airship2 replacement plugin Regexp pattern feature was also added, even though MultiRef can overlap with this functionality.
 
 This example is written in `go` and uses the `kyaml` libraries for parsing the
 input and writing the output.  Writing in `go` is not a requirement.
@@ -23,9 +26,8 @@ This exits non-zero if there is an error.
 
 ## Running the Example
 
-Run the validator with:
+Run the function with:
 
     kustomize config run local-resource/
 
-This will create all needed files (volumes emulation), configure env variables
-run the cmdline and cleanups files created after that.
+This will make the necessary changes in the yaml documents.
