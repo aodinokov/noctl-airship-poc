@@ -143,8 +143,6 @@ func (f *Function) Exec(items []*yaml.RNode) error {
 			return err
 		}
 
-		//fmt.Printf("The value is %v\n", value)
-
 		err = apply(items, r.Target, value)
 		if err != nil {
 			return err
