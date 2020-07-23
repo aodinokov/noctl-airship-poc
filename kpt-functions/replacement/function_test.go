@@ -134,8 +134,8 @@ metadata:
   name: pod
 spec:
   containers:
-  - image: busybox
-    name: myapp-container
+  - name: myapp-container
+    image: busybox
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -145,8 +145,8 @@ spec:
   template:
     spec:
       containers:
-      - image: busybox
-        name: myapp-container
+      - name: myapp-container
+        image: busybox
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -156,8 +156,8 @@ spec:
   template:
     spec:
       containers:
-      - image: busybox
-        name: myapp-container
+      - name: myapp-container
+        image: busybox
 `,
 		},
 		{
@@ -371,8 +371,8 @@ metadata:
   name: pod1
 spec:
   containers:
-  - image: busybox
-    name: myapp-container
+  - name: myapp-container
+    image: busybox
 ---
 apiVersion: v1
 kind: Pod
@@ -380,8 +380,8 @@ metadata:
   name: pod2
 spec:
   containers:
-  - image: busybox
-    name: myapp-container
+  - name: myapp-container
+    image: busybox
   non:
     existent:
       field: pod1

@@ -158,7 +158,7 @@ func setFieldValue(node *yaml.RNode, fieldRef string, value interface{}) error {
 }
 
 func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode) error {
-	log.Printf("started")
+	//log.Printf("started")
 	path, err := parseFieldRef(fieldRefs[0])
 	if err != nil {
 		return err
@@ -195,8 +195,8 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode
 			return fmt.Errorf("wan't able to lookup %v", err)
 		}
 		if cnl == nil {
-			cns, _ := cn.String()
-			log.Printf("creating %s, cn(%v):\n%s\n kind scalar: %v, seq: %v, map: %v", p, cn, cns, kind == yaml.ScalarNode, kind == yaml.SequenceNode, kind == yaml.MappingNode)
+			//cns, _ := cn.String()
+			//log.Printf("creating %s, cn(%v):\n%s\n kind scalar: %v, seq: %v, map: %v", p, cn, cns, kind == yaml.ScalarNode, kind == yaml.SequenceNode, kind == yaml.MappingNode)
 			cnl, err = cn.Pipe(yaml.LookupCreate(kind, p))
 			if err != nil {
 				return fmt.Errorf("wan't able to create node %v", err)
@@ -213,7 +213,7 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode
 					return fmt.Errorf("unexpected kind in %v", path[:i+1])
 				}
 			}
-			log.Printf("found %s", p)
+			//log.Printf("found %s", p)
 		}
 
 		cnp := cn
