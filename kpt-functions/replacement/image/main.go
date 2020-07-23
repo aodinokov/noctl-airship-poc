@@ -17,7 +17,7 @@ func main() {
 	defer log.Print("Finished")
 
 	cfg := replacement.FunctionConfig{}
-	resourceList := &framework.ResourceList{FunctionConfig: cfg}
+	resourceList := &framework.ResourceList{FunctionConfig: &cfg}
 
 	cmd := framework.Command(resourceList, func() error {
 		fn, err := replacement.NewFunction(&cfg)
