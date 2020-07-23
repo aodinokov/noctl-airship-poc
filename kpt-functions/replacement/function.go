@@ -13,15 +13,6 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-/*
-TODOs:
-1. move all tests from replacement plugin here - done for positive tests
-2. lookup doesn't work with index.
-3. if there is a . in the [] the path will be splitted incorrectly
-4. test 2 - doesn't creat non-existing fielss
-5. test 5 - can't add element to array
-*/
-
 var (
 	// substring substitutions are appended to paths as: ...%VARNAME%
 	substringPatternRegex = regexp.MustCompile(`(\S+)%(\S+)%$`)
