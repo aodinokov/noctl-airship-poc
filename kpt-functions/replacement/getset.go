@@ -238,10 +238,40 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode
 					return fmt.Errorf("wan't able to set back: %v", err)
 				}
 			} else {
-				err = cnp.PipeE(yaml.FieldSetter{Name: p, Value: setNode})
-				if err != nil {
-					return fmt.Errorf("wan't able to set: %v", err)
+				if cnp.YNode().Kind == yaml.MappingNode {
+					err = cnp.PipeE(yaml.FieldSetter{Name: p, Value: setNode})
+					if err != nil {
+						return fmt.Errorf("wan't able to set map: %v", err)
+					}
+				} else { /*opposite is only yaml.SequenceNode */
+					// we need to delete the found element
+					// and set the new one instead
+					k, v, err := yaml.SplitIndexNameValue(p)
+					if err != nil {
+						return fmt.Errorf("can't get kv %s", p)
+					}
+
+					err = cnp.PipeE(yaml.ElementSetter{Element: setNode.YNode(), Key: k, Value: v})
+					if err != nil {
+						return fmt.Errorf("wan't able to set seq: %v", err)
+					}
 				}
+				/*
+					if err != nil {
+						log.Printf("name %s", p)
+						log.Printf("setNode kind scalar: %v, seq: %v, map: %v", kind == yaml.ScalarNode, kind == yaml.SequenceNode, kind == yaml.MappingNode)
+						s, _ := setNode.String()
+						log.Printf("setNode\n%s", s)
+						kind = cnp.YNode().Kind
+						log.Printf("cnp kind scalar: %v, seq: %v, map: %v", kind == yaml.ScalarNode, kind == yaml.SequenceNode, kind == yaml.MappingNode)
+						s, _ = cnp.String()
+						log.Printf("cnp\n%s", s)
+						kind = cn.YNode().Kind
+						log.Printf("cn kind scalar: %v, seq: %v, map: %v", kind == yaml.ScalarNode, kind == yaml.SequenceNode, kind == yaml.MappingNode)
+						s, _ = cn.String()
+						log.Printf("cn\n%s", s)
+						return fmt.Errorf("wan't able to set: %v", err)
+					}*/
 			}
 		}
 	}

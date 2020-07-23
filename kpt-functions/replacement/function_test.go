@@ -431,8 +431,8 @@ metadata:
   name: pod
 spec:
   containers:
-  - image: repl
-    name: repl
+  - name: repl
+    image: repl
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -442,8 +442,8 @@ spec:
   template:
     spec:
       containers:
-      - image: repl
-        name: repl
+      - name: repl
+        image: repl
 `,
 		},
 	}
