@@ -7,8 +7,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"log"
-
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -202,7 +200,8 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode
 				return fmt.Errorf("wan't able to create node %v", err)
 			}
 			if cnl == nil {
-				log.Printf("still nil")
+				//log.Printf("still nil")
+				return fmt.Errorf("unexpected nil object pointer returned")
 			}
 		} else {
 			if cnl.YNode().Kind != kind {
