@@ -251,10 +251,11 @@ e:
 a:
   b:
     d:
-    - name: ng0
-      value: vg0
-    - name: ng1
-      value: vg1
+      e:
+      - name: ng0
+        value: vg0
+      - name: ng1
+        value: vg1
 `,
 		},
 		{
