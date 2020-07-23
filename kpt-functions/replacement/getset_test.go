@@ -237,7 +237,7 @@ a:
 		{
 			InYaml: `
 a:
-  b:
+  x: test
 `,
 			InField: "a.b.d",
 			InValueYaml: `
@@ -249,6 +249,7 @@ e:
 `,
 			ExpectedYaml: `
 a:
+  x: test
   b:
     d:
       e:

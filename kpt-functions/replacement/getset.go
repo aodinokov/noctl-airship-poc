@@ -163,6 +163,43 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode
         if err != nil {
                 return  err
         }
+/*
+	if len(fieldRefs) == 1 {
+		log.Printf("%v", path)
+		return node.PipeE(
+			yaml.LookupCreate(setNode.YNode().Kind, path[ : len(path)-1]...),
+			yaml.FieldSetter{Name: path[len(path)-1], Value: setNode},
+		)
+	}
+
+	fnode, err := getFieldValueImpl(node, fieldRefs)
+	if err != nil {
+		return err
+	}
+	if fnode != nil {
+		// must be string
+		inNode, err := yaml.Parse(yaml.GetValue(fnode))
+		if err != nil {
+			return err
+		}
+		err = setFieldValueImpl(inNode, fieldRefs[1:], setNode)
+		if err != nil {
+			return err
+		}
+		s, err := inNode.String()
+		if err != nil {
+			return err
+		}
+		return node.PipeE(
+                        yaml.LookupCreate(yaml.ScalarNode, path[ : len(path)-1]...),
+                        yaml.FieldSetter{Name: path[len(path)-1], Value: yaml.NewScalarRNode(s)},
+                )
+	} else {
+		//TBD
+	}
+
+	return nil
+*/
 
 	cn := node
         for i, p := range path {
@@ -206,6 +243,14 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode
 				log.Printf("still nil")
 			}
                 } else {
+			if cnl.YNode().Kind != kind {
+				if cnl.YNode().Kind == yaml.ScalarNode && yaml.GetValue(cnl) == "" {
+					//TODO: change 
+					return fmt.Errorf("unexpected kind in %v. possible change from emptyScalar isn't implemented", path[:i+1])
+				} else {
+					return fmt.Errorf("unexpected kind in %v", path[:i+1])
+				}
+			}
 			log.Printf("found %s", p)
 		}
 
