@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"text/template"
 
-	"log"
-
 	"github.com/Masterminds/sprig"
 
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -31,9 +29,6 @@ func NewFunction(cfg *FunctionConfig) (*Function, error) {
 }
 
 func (f *Function) Exec(items []*yaml.RNode) ([]*yaml.RNode, error) {
-	log.Printf("entered")
-	defer log.Printf("exited")
-
 	var out bytes.Buffer
 
 	funcMap := sprig.TxtFuncMap()
@@ -48,8 +43,6 @@ func (f *Function) Exec(items []*yaml.RNode) ([]*yaml.RNode, error) {
 		return nil, fmt.Errorf("template exec returned error: %v", err)
 	}
 
-	log.Printf("template returned\n%s", out.String())
-
 	// Convert string to Rnodes
 	p := kio.Pipeline{
 		Inputs:  []kio.Reader{&kio.ByteReader{Reader: bytes.NewBufferString(out.String())}},
@@ -59,7 +52,6 @@ func (f *Function) Exec(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Printf("returned %v", p.Outputs[0].(*kio.PackageBuffer).Nodes)
 	return append(items, p.Outputs[0].(*kio.PackageBuffer).Nodes...), nil
 }
 
