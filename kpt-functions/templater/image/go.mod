@@ -3,8 +3,8 @@ module github.com/aodinokov/noctl-airship-poc/kpt-functions/templater/image
 go 1.14
 
 require (
-	github.com/aodinokov/noctl-airship-poc/kpt-functions/templater v0.0.0-00010101000000-000000000000
+	github.com/aodinokov/noctl-airship-poc/kpt-functions/templater v0.0.0-20200726055910-6346ff739d79
 	sigs.k8s.io/kustomize/kyaml v0.4.1
 )
 
-replace github.com/aodinokov/noctl-airship-poc/kpt-functions/templater => ../
+//replace github.com/aodinokov/noctl-airship-poc/kpt-functions/templater => ../
