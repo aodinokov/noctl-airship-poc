@@ -1,0 +1,23 @@
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/airshipit/kpt-functions/templater-default:v0.0.1
+values:
+  hosts:
+    - macAddress: 00:aa:bb:cc:dd
+      name: node-1
+    - macAddress: 00:aa:bb:cc:ee
+      name: node-2
+template: |
+  {{ range .hosts -}}
+  ---
+  apiVersion: metal3.io/v1alpha1
+  kind: BareMetalHost
+  metadata:
+    name: {{ .name }}
+  spec:
+    bootMACAddress: {{ .macAddress }}
+  {{ end -}}
