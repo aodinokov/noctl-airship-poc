@@ -4,7 +4,7 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: quay.io/airshipit/kpt-functions/replacement-default:v0.0.1
+        image: quay.io/aodinokov/replacement-default:v0.0.1
 replacements:
 - source:
     value: nginx:newtag

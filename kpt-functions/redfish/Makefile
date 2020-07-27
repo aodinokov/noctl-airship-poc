@@ -38,5 +38,5 @@ vet:
 	(cd image && go vet ./...)
 
 image:
-	docker build -f image/Dockerfile.debian_stable image -t quay.io/airshipit/kpt-functions/redfish-debian_stable:v0.0.1
-	#docker push quay.io/airshipit/kpt-functions/redfish-debian_stable:v0.0.1
+	docker build -f image/Dockerfile image -t quay.io/aodinokov/redfish-default:v0.0.1
+	#docker push quay.io/aodinokov/redfish-default:v0.0.1

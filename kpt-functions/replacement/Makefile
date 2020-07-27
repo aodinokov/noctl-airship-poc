@@ -38,5 +38,5 @@ vet:
 	(cd image && go vet ./...)
 
 image:
-	docker build -f image/Dockerfile image -t quay.io/airshipit/kpt-functions/replacement-default:v0.0.1
-	#docker push quay.io/airshipit/kpt-functions/replacement-default:v0.0.1
+	docker build -f image/Dockerfile image -t quay.io/aodinokov/replacement-default:v0.0.1
+	#docker push quay.io/aodinokov/replacement-default:v0.0.1
