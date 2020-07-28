@@ -1,0 +1,3 @@
+resources:
+  - ../../../../../manifests/function/helm-operator
+  - ../../../../composite/reference-cloud

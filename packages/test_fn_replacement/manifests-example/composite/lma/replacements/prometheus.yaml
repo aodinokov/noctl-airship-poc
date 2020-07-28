@@ -1,0 +1,46 @@
+# These rules inject endpoint information from the `lma-endpoint-catalogue`
+# into the lma composite's prometheus function.
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: lma-prometheus-replacements
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/replacement-default:v0.0.1
+replacements:
+# First, fill DOMAINs into the endpoint catalog
+# N/A: Prometheus exposes no external endpoints
+
+# Next, fill catalogue values into the chart overrides
+# Note: these are equivalent to pegleg rules in treasuremap prometheus.yaml
+- source:
+    objref:
+      name: lma-endpoint-catalogue
+    fieldref: data.monitoring
+  target:
+    objref:
+      kind: HelmRelease
+      name: prometheus
+    fieldrefs: [spec.values.endpoints.monitoring]
+- source:
+    objref:
+      name: lma-endpoint-catalogue
+    fieldref: data.alerts
+  target:
+    objref:
+      kind: HelmRelease
+      name: prometheus
+    fieldrefs: [spec.values.endpoints.alerts]
+# LDAP feels like something on top of a generic vanilla OpenStack
+# Perhaps define this mapping rule, and the catalog data, in another composite
+#- source:
+#    objref:
+#      name: lma-endpoint-catalogue
+#    fieldref: data.ldap
+#  target:
+#    objref:
+#      kind: HelmRelease
+#      name: keystone
+#    fieldrefs: [spec.values.endpoints.ldap]
+

@@ -1,0 +1,13 @@
+---
+apiVersion: "helm.fluxcd.io/v1"
+kind: HelmRelease
+metadata:
+  name: keystone
+spec:
+  wait: true
+  timeout: 600
+  values: {}
+  chart:
+    git: https://opendev.org/openstack/openstack-helm
+    ref: master
+    path: .

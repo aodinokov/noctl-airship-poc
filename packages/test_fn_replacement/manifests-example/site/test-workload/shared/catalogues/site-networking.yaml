@@ -1,0 +1,8 @@
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: site-networking-catalogue
+  labels:
+    airshipit.org/deploy-k8s: "false"
+data:
+  domain: test-site.com

@@ -1,0 +1,6 @@
+resources:
+  - ../../../../type/test-workload/target/workload
+  - ../../shared/catalogues
+
+transformers:
+  - ../../../../type/test-workload/target/workload/replacements

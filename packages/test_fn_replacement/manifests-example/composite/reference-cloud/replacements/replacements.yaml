@@ -1,0 +1,20 @@
+# This rule injects fluentd info from the lma-endpoint-catalogue
+# into openstack functions that need it
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: reference-cloud-replacements
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/replacement-default:v0.0.1
+replacements:
+- source:
+    objref:
+      name: lma-endpoint-catalogue
+    fieldref: data.fluentd
+  target:
+    objref:
+      kind: HelmRelease
+      name: keystone
+    fieldrefs: [spec.values.endpoints.fluentd]

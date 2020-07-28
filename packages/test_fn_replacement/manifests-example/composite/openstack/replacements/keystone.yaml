@@ -1,0 +1,72 @@
+# These rules inject endpoint information from the `openstack-endpoint-catalogue`
+# into the openstack composite's keystone function.
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: openstack-keystone-replacements
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/replacement-default:v0.0.1
+replacements:
+# First, fill DOMAINs into the endpoint catalog
+- source:
+    objref:
+      name: site-networking-catalogue
+    fieldref: data.domain
+  target:
+    objref:
+      name: openstack-endpoint-catalogue
+    fieldrefs: [
+      data.identity.host_fqdn_override.public.host%DOMAIN%,
+      data.identity.host_fqdn_override.admin.host%DOMAIN%
+    ]
+# Next, fill catalogue values into the chart overrides
+- source:
+    objref:
+      name: openstack-endpoint-catalogue
+    fieldref: data.identity
+  target:
+    objref:
+      kind: HelmRelease
+      name: keystone
+    fieldrefs: [spec.values.endpoints.identity]
+- source:
+    objref:
+      name: openstack-endpoint-catalogue
+    fieldref: data.oslo_db
+  target:
+    objref:
+      kind: HelmRelease
+      name: keystone
+    fieldrefs: [spec.values.endpoints.oslo_db]
+- source:
+    objref:
+      name: openstack-endpoint-catalogue
+    fieldref: data.oslo_messaging
+  target:
+    objref:
+      kind: HelmRelease
+      name: keystone
+    fieldrefs: [spec.values.endpoints.oslo_messaging]
+- source:
+    objref:
+      name: openstack-endpoint-catalogue
+    fieldref: data.oslo_cache
+  target:
+    objref:
+      kind: HelmRelease
+      name: keystone
+    fieldrefs: [spec.values.endpoints.oslo_cache]
+# Note: this endpoint isn't injected here, since an openstack deployment
+# may not have fluentd.  It should be injected by any composites that
+# combine OpenStack and fluentd together.
+#- source:
+#    objref:
+#      name: openstack-endpoint-catalogue
+#    fieldref: data.fluentd
+#  target:
+#    objref:
+#      kind: HelmRelease
+#      name: keystone
+#    fieldrefs: [spec.values.endpoints.fluentd]

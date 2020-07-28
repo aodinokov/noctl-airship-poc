@@ -1,0 +1,61 @@
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: openstack-endpoint-catalogue
+  labels:
+    airshipit.org/deploy-k8s: "false"
+data:
+  # Note: the stanzas below is verbatim from A1 seaworthy
+  identity:
+    namespace: openstack
+    name: keystone
+    hosts:
+      default: keystone
+      internal: keystone-api
+    host_fqdn_override:
+      default: null
+      public:
+        host: identity-sw.DOMAIN
+      admin:
+        host: identity-sw.DOMAIN
+    path:
+      default: /v3
+    scheme:
+      default: "https"
+      internal: "http"
+    port:
+      api:
+        default: 443
+        internal: 5000
+  oslo_db:
+    namespace: osh-infra
+    hosts:
+      default: mariadb
+    host_fqdn_override:
+      default: null
+    path: /DB_NAME
+    scheme: mysql+pymysql
+    port:
+      mysql:
+        default: 3306
+  oslo_messaging:
+    namespace: null
+    statefulset:
+      name: airship-ucp-rabbitmq-rabbitmq
+    hosts:
+      default: rabbitmq
+    host_fqdn_override:
+      default: null
+    path: /keystone
+    scheme: rabbit
+    port:
+      amqp:
+        default: 5672
+  oslo_cache:
+    hosts:
+      default: memcached
+    host_fqdn_override:
+      default: null
+    port:
+      memcache:
+        default: 11211

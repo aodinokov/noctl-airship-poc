@@ -1,0 +1,73 @@
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: lma-endpoint-catalogue
+  labels:
+    airshipit.org/deploy-k8s: "false"
+data:
+  # Note: the stanzas below are verbatim from A1 seaworthy's endpoints.yaml
+  alerts:
+    name: alertmanager
+    namespace: osh-infra
+    hosts:
+      default: alerts-engine
+      public: alertmanager
+      discovery: alertmanager-discovery
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: "http"
+    port:
+      api:
+        default: 9093
+        public: 80
+      mesh:
+        default: 6783
+  monitoring:
+    name: prometheus
+    namespace: osh-infra
+    hosts:
+      default: prom-metrics
+      public: prometheus
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: "http"
+    port:
+      api:
+        default: 9090
+      http:
+        default: 80
+  fluentd:
+    namespace: osh-infra
+    name: fluentd
+    hosts:
+      default: fluentd-logging
+    host_fqdn_override:
+      default: null
+    path:
+      default: null
+    scheme:
+      default: "http"
+    port:
+      service:
+        default: 24224
+      metrics:
+        default: 24220
+  prometheus_fluentd_exporter:
+    namespace: osh-infra
+    hosts:
+      default: fluentd-exporter
+    host_fqdn_override:
+      default: null
+    path:
+      default: /metrics
+    scheme:
+      default: "http"
+    port:
+      metrics:
+        default: 9309

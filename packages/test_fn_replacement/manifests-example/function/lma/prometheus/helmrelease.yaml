@@ -1,0 +1,16 @@
+---
+apiVersion: "helm.fluxcd.io/v1"
+kind: HelmRelease
+metadata:
+  name: prometheus
+spec:
+  wait: true
+  timeout: 600
+  values:
+    server:
+      service:
+        type: NodePort
+  chart:
+    repository: https://kubernetes-charts.storage.googleapis.com
+    name: prometheus
+    version: 11.0.4

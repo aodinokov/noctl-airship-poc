@@ -1,0 +1,12 @@
+resources:
+  - ../../global/crd/baremetal-operator
+  - config-file
+  - rbac
+  - entrypoint
+  - operator.yaml
+  - ironic.yaml
+  - ironic-pv.yaml
+  - ironic-vars.yaml
+  - namespace.yaml
+
+namespace: metal3
