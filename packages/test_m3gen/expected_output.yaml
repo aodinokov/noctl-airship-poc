@@ -1,0 +1,40 @@
+apiVersion: v1
+data:
+  password: cjAwdG1l
+  username: cm9vdA==
+kind: Secret
+metadata:
+  annotations:
+    config.kubernetes.io/path: secret_node01-bmc-secret.yaml
+  labels:
+    airshipit.org/k8s-role: controlplane-host
+  name: node01-bmc-secret
+type: Opaque
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    config.kubernetes.io/path: secret_node01-network-data.yaml
+  labels:
+    airshipit.org/k8s-role: controlplane-host
+  name: node01-network-data
+stringData:
+  networkData: "links:\n- id: oam\n  mtu: \"1500\"\n  name: enp0s3\n  type: phy\n  ethernet_mac_address: 52:54:00:9b:27:4c\n- id: pxe\n  mtu: \"1500\"\n  name: enp0s4\n  type: phy\n  ethernet_mac_address: 52:54:00:b6:ed:31\nnetworks:\n- id: oam-ipv4\n  link: oam\n  netmask: 255.255.255.0\n  routes:\n    - gateway: 10.23.25.1\n      netmask: 0.0.0.0\n      network: 0.0.0.0\n  type: ipv4\n  ip_address: 10.23.25.102\n- id: pxe-ipv4\n  link: pxe\n  netmask: 255.255.255.0\n  type: ipv4\n  ip_address: 10.23.24.102\nservices:\n  - address: 8.8.8.8\n    type: dns\n  - address: 8.8.4.4\n    type: dns\n  \n"
+type: Opaque
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  labels:
+    airshipit.org/k8s-role: controlplane-host
+  name: node01
+spec:
+  bmc:
+    address: redfish+http://10.23.25.1:8000/redfish/v1/Systems/air-target-1
+    credentialsName: node01-bmc-secret
+  bootMACAddress: 52:54:00:b6:ed:31
+  networkData:
+    name: node01-network-data
+    namespace: default
+  online: false
