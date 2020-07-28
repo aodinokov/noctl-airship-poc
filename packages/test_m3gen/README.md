@@ -36,10 +36,10 @@ manifests/function/hostgenerator-m3/hosttemplate.yaml:2:kind: Templater
 Please read [this](../test_fn_replacement/README.md) to get more information how fnplugins work.
 
 This demo works in the following way:
-`manifests/site/test-site/ephemeral/controlplane/hostgenerator/kustomization.yaml` collects 
-the template from function/hostgenerator-m3
-the information about all hosts from manifests/site/test-site/shared/catalogues/
-the information about what hosts to generate from local file host-generation.yaml
+[manifests/site/test-site/ephemeral/controlplane/hostgenerator/kustomization.yaml](manifests/site/test-site/ephemeral/controlplane/hostgenerator/kustomization.yaml) collects 
+the template from [manifests/function/hostgenerator-m3](manifests/function/hostgenerator-m3)
+the information about all hosts from [manifests/site/test-site/shared/catalogues/](manifests/site/test-site/shared/catalogues/)
+the information about what hosts to generate from local file [host-generation.yaml](manifests/site/test-site/ephemeral/controlplane/hostgenerator/host-generation.yaml)
 uses replacement to concat that info to the Templater with required data:
 
 ```
@@ -160,9 +160,9 @@ values:
   hostsToGenerate:
   - node01
 ```
-cleanup.yaml removes all catalogues and keeps only this resource.
+[cleanup.yaml](manifests/site/test-site/ephemeral/controlplane/hostgenerator/cleanup.yaml) removes all catalogues and keeps only this resource.
 
-site/test-site/ephemeral/controlplane/nodes/kustomization.yaml calls the previous kustomization from generator section
+[manifests/site/test-site/ephemeral/controlplane/nodes/kustomization.yaml](manifests/site/test-site/ephemeral/controlplane/nodes/kustomization.yaml) calls the previous kustomization from generator section:
 
 ```
 generators:
@@ -172,7 +172,7 @@ generators:
 and that makes kustomize to call Templater that generates the resources using template and values.
 In addition this file adds label `airshipit.org/k8s-role: controlplane-host`
 
-All other resources were removed from the main file manifests/site/test-site/ephemeral/controlplane/kustomization.yaml that is used to do kustomize build.
+All other resources were removed from the main file [manifests/site/test-site/ephemeral/controlplane/kustomization.yaml](manifests/site/test-site/ephemeral/controlplane/kustomization.yaml) that is used to do kustomize build.
 
 To run the example just install docker and call ./run.sh. The script will download the needed version of kustomize and put the resulting resources to output.yaml.
 During the first run it will be possible to see how docker pulls the needed function images.
