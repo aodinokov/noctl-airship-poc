@@ -1,5 +1,5 @@
 This demo show the how [fn plugins](https://github.com/kubernetes-sigs/kustomize/tree/master/api/internal/plugins/fnplugin) work in kustomize 3.8.1
-It's based on this [PR](https://review.opendev.org/#/c/724869/21) and the only changes that were made: added the following annotations:
+It's based on this [PR](https://review.opendev.org/#/c/735033/25) and the only changes that were made: added the following annotations:
 
 for replacement transformer:
 
