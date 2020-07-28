@@ -1,4 +1,4 @@
-This demo shows that kustominze actually has ability to
+This demo shows that kustomize actually has ability to
 remove needed resources using SMP construction:
 
 ```
