@@ -1,7 +1,8 @@
-This demo show the how [fn plugins](https://github.com/kubernetes-sigs/kustomize/tree/master/api/internal/plugins/fnplugin) work in kustomize 3.8.1
-It's based on this [PR](https://review.opendev.org/#/c/735033/25) and the only changes that were made: added the following annotations:
+This demo shows how [fn plugins](https://github.com/kubernetes-sigs/kustomize/tree/master/api/internal/plugins/fnplugin) work in kustomize 3.8.1
+It's based on this [PR](https://review.opendev.org/#/c/735033/25) and the only changes that were made were: 
 
-for replacement transformer:
+
+for replacement transformer added:
 
 ```
   annotations:
@@ -10,14 +11,14 @@ for replacement transformer:
         image: quay.io/aodinokov/replacement-default:v0.0.1
 ```
 
-in all documents that had kind ReplacementTransformer
+in all documents that had kind ReplacementTransformer:
 
 ```
 $ grep -Rni 'ReplacementTransformer'
 manifests/function/hostgenerator-m3/replacements/hosts.yaml:4:kind: ReplacementTransformer
 ```
 
-for templater generator:
+for templater generator added:
 
 ```
   annotations:
@@ -26,7 +27,7 @@ for templater generator:
         image: quay.io/aodinokov/templater-default:v0.0.1
 ```
 
-in all documents that had kind Templater
+in all documents that had kind Templater:
 
 ```
 $ grep -Rni 'Templater'
