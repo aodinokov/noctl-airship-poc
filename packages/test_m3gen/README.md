@@ -37,11 +37,16 @@ manifests/function/hostgenerator-m3/hosttemplate.yaml:2:kind: Templater
 Please read [this](../test_fn_replacement/README.md) to get more information how fnplugins work.
 
 This demo works in the following way:
-[manifests/site/test-site/ephemeral/controlplane/hostgenerator/kustomization.yaml](manifests/site/test-site/ephemeral/controlplane/hostgenerator/kustomization.yaml) collects 
-the template from [manifests/function/hostgenerator-m3](manifests/function/hostgenerator-m3)
-the information about all hosts from [manifests/site/test-site/shared/catalogues/](manifests/site/test-site/shared/catalogues/)
-the information about what hosts to generate from local file [host-generation.yaml](manifests/site/test-site/ephemeral/controlplane/hostgenerator/host-generation.yaml)
-uses replacement to concat that info to the Templater with required data:
+
+[manifests/site/test-site/ephemeral/controlplane/hostgenerator/kustomization.yaml](manifests/site/test-site/ephemeral/controlplane/hostgenerator/kustomization.yaml) collects:
+
+1. the template from [manifests/function/hostgenerator-m3](manifests/function/hostgenerator-m3)
+
+2. the information about all hosts from [manifests/site/test-site/shared/catalogues/](manifests/site/test-site/shared/catalogues/)
+
+3. the information about what hosts to generate from local file [host-generation.yaml](manifests/site/test-site/ephemeral/controlplane/hostgenerator/host-generation.yaml)
+
+It uses replacement to concat that collected info to the Templater configuration with the required data:
 
 ```
 apiVersion: airshipit.org/v1alpha1
@@ -170,8 +175,8 @@ generators:
   - ../hostgenerator
 ```
 
-and that makes kustomize to call Templater that generates the resources using template and values.
-In addition this file adds label `airshipit.org/k8s-role: controlplane-host`
+And that makes kustomize to call Templater that generates the resources using template and values.
+In addition this file adds the label `airshipit.org/k8s-role: controlplane-host`.
 
 All other resources were removed from the main file [manifests/site/test-site/ephemeral/controlplane/kustomization.yaml](manifests/site/test-site/ephemeral/controlplane/kustomization.yaml) that is used to do kustomize build.
 
