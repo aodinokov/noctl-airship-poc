@@ -22,7 +22,7 @@ type FunctionConfig struct {
 type Function struct {
 	Config *FunctionConfig
 
-	key []byte
+	key string
 }
 
 func NewFunction(cfg *FunctionConfig) (*Function, error) {
@@ -49,7 +49,7 @@ func (f *Function) Exec(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	return items, nil
 }
 
-func decryptField(node *yaml.RNode, fieldRef string, key []byte) error {
+func decryptField(node *yaml.RNode, fieldRef string, key string) error {
 	cn, err := node.Pipe(yaml.Lookup(fieldRef))
 	if err != nil {
 		return err
