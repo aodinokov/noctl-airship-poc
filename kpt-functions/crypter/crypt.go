@@ -11,12 +11,12 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-func key(password string) (string, error) {
+func Key(password string) (string, error) {
 	dk := pbkdf2.Key([]byte(password), []byte("airshipit.org/salt"), 100000, 32, sha256.New)
 	return base64.StdEncoding.EncodeToString(dk), nil
 }
 
-func decrypt(in string, key string) (string, error) {
+func Decrypt(in string, key string) (string, error) {
 	k := fernet.MustDecodeKeys(key)
 
 	tok, err := base64.StdEncoding.DecodeString(in)
@@ -24,7 +24,7 @@ func decrypt(in string, key string) (string, error) {
 		return "", fmt.Errorf("wasn't able to decode64 string %s", in)
 	}
 
-	b := fernet.VerifyAndDecrypt(tok, 1*time.Second, k)
+	b := fernet.VerifyAndDecrypt(tok, 0*time.Second, k)
 	if b == nil {
 		return "", fmt.Errorf("wasn't able to decrypt string %s", in)
 	}
@@ -37,7 +37,7 @@ func decrypt(in string, key string) (string, error) {
 	return string(db), nil
 }
 
-func encrypt(in string, key string) (string, error) {
+func Encrypt(in string, key string) (string, error) {
 	k := fernet.MustDecodeKeys(key)
 
 	eb := base64.StdEncoding.EncodeToString([]byte(in))
