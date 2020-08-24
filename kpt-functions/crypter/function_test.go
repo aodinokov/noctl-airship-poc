@@ -83,6 +83,62 @@ hosts:
         pxe-ipv4: 10.23.24.101
 `,
 		},
+		{
+			cfg: `
+dryRun: true
+refs:
+- objref:
+    kind: VariableCatalogue
+    name: test-catalogue
+  fieldrefs:
+  - x.dryrynscalar
+`,
+			in: `
+kind: VariableCatalogue
+metadata:
+  name: test-catalogue
+scalar: some data
+x:
+  dryrynscalar: Z0FBQUFBQmZPMWp0anFJcnpDNElXa2dEOFZOd19DNDNiODdPSlF3UVNERFk2cjdydmFpU3BEckxpVkY3S2VUVmpjQUpEdUZMT2x3RjQ1NnBYa2p5cFpKX1dHY1B3UFVmQVE9PQ==
+`,
+			expectedOut: `
+kind: VariableCatalogue
+metadata:
+  name: test-catalogue
+scalar: some data
+x:
+  dryrynscalar: decrypted x.dryrynscalar
+`,
+		},
+		{
+			cfg: `
+password: testpass
+refs:
+- objref:
+    kind: VariableCatalogue
+    name: test-catalogue
+  fieldrefs:
+  - x.*.v
+`,
+			in: `
+kind: VariableCatalogue
+metadata:
+  name: test-catalogue
+scalar: some data
+x:
+  - v: Z0FBQUFBQmZPMWp0anFJcnpDNElXa2dEOFZOd19DNDNiODdPSlF3UVNERFk2cjdydmFpU3BEckxpVkY3S2VUVmpjQUpEdUZMT2x3RjQ1NnBYa2p5cFpKX1dHY1B3UFVmQVE9PQ==
+  - v: Z0FBQUFBQmZPMWthSGVxU18tWmdTS242eTBkUWQ5UVhfMEt2bEhzSEFJdDNTRUl2eXpDY0N0MWJxODFpRDlkbnBRU05qZ2o3cjBxRDIyRExSaGZCX2pkMFJkbnI5SzdZMnc9PQ==
+`,
+			expectedOut: `
+kind: VariableCatalogue
+metadata:
+  name: test-catalogue
+scalar: some data
+x:
+- v: password
+- v: r00tme
+`,
+		},
 	}
 
 	for i, ti := range tc {

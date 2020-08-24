@@ -44,19 +44,19 @@ func NewFunction(cfg *FunctionConfig) (*Function, error) {
 }
 
 func (f *Function) Exec(items []*yaml.RNode) ([]*yaml.RNode, error) {
+	key, err := Key(f.Config.Password)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, ref := range f.Config.Refs {
 		node, err := ref.ObjRef.FindOne(items)
 		if err != nil {
 			return nil, err
 		}
 
-		key, err := Key(f.Config.Password)
-		if err != nil {
-			return nil, err
-		}
-
 		for _, fieldRef := range ref.FieldRefs {
-			err := decryptField(node, fieldRef, key)
+			err := f.decryptField(node, fieldRef, key)
 			if err != nil {
 				return nil, err
 			}
@@ -106,20 +106,46 @@ func parseFieldRef(in string) ([]string, error) {
 	return append(out, cur.String()), nil
 }
 
-func decryptField(node *yaml.RNode, fieldRef string, key string) error {
+func (f *Function) decryptField(node *yaml.RNode, fieldRef string, key string) error {
 
 	p, err := parseFieldRef(fieldRef)
 	if err != nil {
 		return err
 	}
-	/*
-		s, err := node.String()
-		if err != nil {
-			return err
-		}
-		log.Printf("finding %v in\n%s", p, s)*/
 
-	cn, err := node.Pipe(yaml.Lookup(p...))
+	return f.decryptFieldImpl(node, fieldRef, p, key)
+}
+
+func (f *Function) decryptFieldImpl(node *yaml.RNode, fieldRef string, fieldRefs []string, key string) error {
+	for i := range fieldRefs {
+		// handle case with * to scan all elements
+		if fieldRefs[i] == "*" {
+			cn, err := node, error(nil)
+			if i > 0 {
+				//log.Printf("%d %v %v", i, fieldRefs, fieldRefs[:i])
+				cn, err = node.Pipe(yaml.Lookup(fieldRefs[:i]...))
+				if err != nil {
+					return err
+				}
+			}
+
+			if cn.YNode().Kind != yaml.SequenceNode {
+				return fmt.Errorf("asterisk is applicable only for SequenceNode")
+			}
+
+			for _, n := range cn.Content() {
+				//log.Printf("%v %v", fieldRefs, fieldRefs[i+1:])
+				err := f.decryptFieldImpl(yaml.NewRNode(n), fieldRef, fieldRefs[i+1:], key)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+
+		}
+	}
+
+	cn, err := node.Pipe(yaml.Lookup(fieldRefs...))
 	if err != nil {
 		return err
 	}
@@ -132,9 +158,12 @@ func decryptField(node *yaml.RNode, fieldRef string, key string) error {
 		return fmt.Errorf("need scalar by path %s", fieldRef)
 	}
 
-	decyptedVal, err := Decrypt(yaml.GetValue(cn), key)
-	if err != nil {
-		return fmt.Errorf("wan't able to decrypt: %v", err)
+	decyptedVal := fmt.Sprintf("decrypted %s", fieldRef)
+	if !f.Config.DryRun {
+		decyptedVal, err = Decrypt(yaml.GetValue(cn), key)
+		if err != nil {
+			return fmt.Errorf("wan't able to decrypt: %v", err)
+		}
 	}
 
 	err = cn.PipeE(yaml.FieldSetter{StringValue: decyptedVal})
@@ -143,4 +172,5 @@ func decryptField(node *yaml.RNode, fieldRef string, key string) error {
 	}
 
 	return nil
+
 }
