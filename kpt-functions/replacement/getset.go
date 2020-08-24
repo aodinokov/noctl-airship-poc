@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func parseFieldRef(in string) ([]string, error) {
+func ParseFieldRef(in string) ([]string, error) {
 	var cur bytes.Buffer
 	out := []string{}
 	var state int
@@ -77,7 +77,7 @@ func getFieldValue(node *yaml.RNode, fieldRef string) (interface{}, error) {
 }
 
 func getFieldValueImpl(node *yaml.RNode, fieldRefs []string) (*yaml.RNode, error) {
-	path, err := parseFieldRef(fieldRefs[0])
+	path, err := ParseFieldRef(fieldRefs[0])
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func setFieldValue(node *yaml.RNode, fieldRef string, value interface{}) error {
 }
 
 func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode) error {
-	path, err := parseFieldRef(fieldRefs[0])
+	path, err := ParseFieldRef(fieldRefs[0])
 	if err != nil {
 		return err
 	}

@@ -42,7 +42,7 @@ func TestParseFieldRef(t *testing.T) {
 		},
 	}
 	for _, ti := range ts {
-		x, err := parseFieldRef(ti.In)
+		x, err := ParseFieldRef(ti.In)
 		if err != nil && !ti.Err {
 			t.Errorf("unexpected error for %s: %v", ti.In, err)
 			continue

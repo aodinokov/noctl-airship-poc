@@ -286,13 +286,17 @@ func (s *SourceObjRef) Filters() ([]kio.Filter, error) {
 	return flts, nil
 }
 
-func (s *SourceObjRef) FindOne(items []*yaml.RNode) (*yaml.RNode, error) {
-	flts, err := s.Filters()
-	if err != nil {
-		return nil, err
-	}
+func (s *SourceObjRef) Filter(items []*yaml.RNode) ([]*yaml.RNode, error) {
+        flts, err := s.Filters()
+        if err != nil {
+                return nil, err
+        }
 
-	matching, err := findMatching(items, flts)
+        return findMatching(items, flts)
+}
+
+func (s *SourceObjRef) FindOne(items []*yaml.RNode) (*yaml.RNode, error) {
+	matching, err := s.Filter(items)
 	if err != nil {
 		return nil, err
 	}
