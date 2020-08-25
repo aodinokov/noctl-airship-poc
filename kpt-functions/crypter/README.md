@@ -3,15 +3,15 @@
 This is an example of implementing a crypter function.
 It allows to decrypt/encrypt/reencrypt(rotate) secrets in yamls. Function can be used as kpt-function or kustomize plugin.
 
-By default it decypts the data, listed in refs, but it has a field `operation` that can in the following states: `decrypt`(default), `encrypt` or `rotate`.
+By default it decypts the data, listed in `refs` parameter, but it has an optional field `operation` that can take the following values: `decrypt`(default), `encrypt` or `rotate`.
 First 2 values require password to be set: either as a value of another field `password`, or using env variable `crypter_password`. Env variable can be used to override
-the set in the yaml value.
+the value set in the yaml.
 
 In case of `rotate` the function required an additional parameter `oldPassword` or `crypter_old_password` env variable.
 
 If the password(s) isn't/aren't set the function will panic and fail.
 
-The function also has dry-run mode that can be used to emulate behavior without knowing the actual password. In case of dry-run the fields will get generated values.
+The function also has a dry-run mode that can be enabled using field `dryRun` field or with `crypter_dryrun` env variable and used to emulate behavior without knowing the actual password. In that case the valued of encrypted fields will be set with pregenerated values e.g. `performed decrypt for <fieldname>`.
 
 The function can be also called as a docker-container to encrypt/decrypt fields as a command-line tool, see:
 
@@ -37,7 +37,7 @@ This exits non-zero if there is an error.
 
 Run the function with:
 
-    kustomize config run local-resource/
+    crypter_password=testpass kustomize config run local-resource/
 
 The resources in local-resource/ will be decrypted
 
