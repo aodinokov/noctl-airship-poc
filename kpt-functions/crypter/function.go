@@ -17,16 +17,16 @@ type Ref struct {
 
 type FunctionConfig struct {
 	OldPassword string `json:"oldPassword,omitempty" yaml:"oldPassword,omitempty"`
-	Password string `json:"password,omitempty" yaml:"password,omitempty"`
-	DryRun   bool   `json:"dryRun,omitempty" yaml:"dryRun,omitempty"`
-	Operation string `json:"operation,omitempty" yaml:"operation,omitempty"`
-	Refs     []Ref  `json:"refs,omitempty" yaml:"refs,omitempty"`
+	Password    string `json:"password,omitempty" yaml:"password,omitempty"`
+	DryRun      bool   `json:"dryRun,omitempty" yaml:"dryRun,omitempty"`
+	Operation   string `json:"operation,omitempty" yaml:"operation,omitempty"`
+	Refs        []Ref  `json:"refs,omitempty" yaml:"refs,omitempty"`
 }
 
 type Function struct {
 	Config *FunctionConfig
 	OldKey string
-	Key string
+	Key    string
 }
 
 func NewFunction(cfg *FunctionConfig) (*Function, error) {
@@ -37,9 +37,9 @@ func NewFunction(cfg *FunctionConfig) (*Function, error) {
 	}
 
 	val, ok = os.LookupEnv("crypter_old_password")
-        if ok {
-                cfg.OldPassword = val
-        }
+	if ok {
+		cfg.OldPassword = val
+	}
 
 	val, ok = os.LookupEnv("crypter_dryrun")
 	if ok {
@@ -142,7 +142,7 @@ func (f *Function) execFieldOpImpl(node *yaml.RNode, fieldRef string, fieldRefs 
 
 	resultingVal := fmt.Sprintf("performed %s for %s", f.Config.Operation, fieldRef)
 	if !f.Config.DryRun {
-		switch(f.Config.Operation) {
+		switch f.Config.Operation {
 		case "decrypt":
 			resultingVal, err = Decrypt(yaml.GetValue(cn), f.Key)
 			if err != nil {

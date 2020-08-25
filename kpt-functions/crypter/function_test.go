@@ -139,8 +139,8 @@ x:
 - v: r00tme
 `,
 		},
-                {
-                        cfg: `
+		{
+			cfg: `
 password: testpass
 operation: encrypt
 refs:
@@ -150,7 +150,7 @@ refs:
   fieldrefs:
   - x.*.v
 `,
-                        in: `
+			in: `
 kind: VariableCatalogue
 metadata:
   name: test-catalogue
@@ -159,10 +159,10 @@ x:
 - v: password
 - v: r00tme
 `,
-// Can't count expected output because it contains different string all the time
-                },
-                {
-                        cfg: `
+			// Can't count expected output because it contains different string all the time
+		},
+		{
+			cfg: `
 oldPassword: testpass
 password: newtestpass
 operation: rotate
@@ -173,7 +173,7 @@ refs:
   fieldrefs:
   - x.*.v
 `,
-                        in: `
+			in: `
 kind: VariableCatalogue
 metadata:
   name: test-catalogue
@@ -182,8 +182,8 @@ x:
 - v: Z0FBQUFBQmZPMWp0anFJcnpDNElXa2dEOFZOd19DNDNiODdPSlF3UVNERFk2cjdydmFpU3BEckxpVkY3S2VUVmpjQUpEdUZMT2x3RjQ1NnBYa2p5cFpKX1dHY1B3UFVmQVE9PQ==
 - v: Z0FBQUFBQmZPMWthSGVxU18tWmdTS242eTBkUWQ5UVhfMEt2bEhzSEFJdDNTRUl2eXpDY0N0MWJxODFpRDlkbnBRU05qZ2o3cjBxRDIyRExSaGZCX2pkMFJkbnI5SzdZMnc9PQ==
 `,
-// Can't count expected output because it contains different string all the time
-                },
+			// Can't count expected output because it contains different string all the time
+		},
 	}
 
 	for i, ti := range tc {
