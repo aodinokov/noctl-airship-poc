@@ -59,7 +59,7 @@ type SourceObjRef struct {
 type MultiSourceObjRef struct {
 	Refs []struct {
 		ObjRef   *SourceObjRef `json:"objref" yaml:"objref"`
-		FieldRef string        `json:"fieldref" yaml:"fiedldref"`
+		FieldRef string        `json:"fieldref" yaml:"fieldref"`
 	} `json:"refs,omitempty" yaml:"refs,omitempty"`
 	Template string `json:"template" yaml:"template"`
 }

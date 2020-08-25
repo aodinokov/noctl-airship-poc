@@ -502,13 +502,73 @@ stringData:
     - value1
 `,
 		},
+		// Additional feature: multiref stringbuilder
+		{
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: notImportantHere
+replacements:
+- source:
+    multiref:
+      refs:
+      - objref:
+          kind: VariableCatalogue
+          name: source
+        fieldref: values.image
+      - objref:
+          kind: VariableCatalogue
+          name: source
+        fieldref: values.tag
+      template: |-
+        {{ index .Values 0 }}:{{ index .Values 1 }}
+  target:
+    objref:
+      kind: Secret
+    fieldrefs:
+    - stringData.image`,
+			in: `
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  image: imagevalue
+  tag: tagvalue
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  image: someimage:sometag
+`,
+			expectedOut: `apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  image: imagevalue
+  tag: tagvalue
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  image: imagevalue:tagvalue
+`,
+		},
 	}
 
 	for i, ti := range tc {
 		fcfg := FunctionConfig{}
 		err := yaml.Unmarshal([]byte(ti.cfg), &fcfg)
 		if err != nil {
-			t.Errorf("can't unmarshal config %s. continue", ti.cfg)
+			t.Errorf("can't unmarshal config %s: %v continue", ti.cfg, err)
 			continue
 		}
 
