@@ -562,6 +562,65 @@ stringData:
   image: imagevalue:tagvalue
 `,
 		},
+		{
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: notImportantHere
+replacements:
+- source:
+    multiref:
+      refs:
+      - objref:
+          kind: Secret
+          name: node1-bmc-secret
+        fieldref: stringData.image
+      - objref:
+          kind: VariableCatalogue
+          name: source
+        fieldref: values.tag
+      template: |-
+        {{ regexReplaceAll ":.*$" (index .Values 0) (printf ":%s" (index .Values 1)) }}
+  target:
+    objref:
+      kind: Secret
+    fieldrefs:
+    - stringData.image`,
+			in: `
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  image: imagevalue
+  tag: tagvalue
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  image: someimage:sometag
+`,
+			expectedOut: `apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  image: imagevalue
+  tag: tagvalue
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  image: someimage:tagvalue
+`,
+		},
 	}
 
 	for i, ti := range tc {
