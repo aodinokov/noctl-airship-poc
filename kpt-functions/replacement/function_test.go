@@ -621,6 +621,62 @@ stringData:
   image: someimage:tagvalue
 `,
 		},
+		// digit indexing must also work
+		{
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: notImportantHere
+replacements:
+- source:
+    objref:
+      kind: VariableCatalogue
+      name: source
+    fieldref: values.field1
+  target:
+    objref:
+      kind: Secret
+    fieldrefs:
+    - stringData.userData|bootcmd.[0]`,
+			in: `
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  field1: value1
+  field2: value2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  userData: |
+    bootcmd:
+    - mkdir /mnt/vda
+`,
+			expectedOut: `apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  field1: value1
+  field2: value2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  userData: |
+    bootcmd:
+    - value1
+`,
+		},
 	}
 
 	for i, ti := range tc {

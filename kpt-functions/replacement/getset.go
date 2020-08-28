@@ -1,6 +1,8 @@
 package replacement
 
 import (
+	//"log"
+
 	"bytes"
 	"fmt"
 	"strconv"
@@ -88,6 +90,9 @@ func getFieldValueImpl(node *yaml.RNode, fieldRefs []string) (*yaml.RNode, error
 		// index case
 		if cn.YNode().Kind == yaml.SequenceNode {
 			i, err := seqNodeIndexPath(p)
+
+			//log.Printf("get: found index %d", i)
+
 			if err == nil {
 				content := cn.Content()
 				if i >= int64(len(content)) {
@@ -165,15 +170,26 @@ func setFieldValueImpl(node *yaml.RNode, fieldRefs []string, setNode *yaml.RNode
 	for i, p := range path {
 		// index case
 		if cn.YNode().Kind == yaml.SequenceNode {
-			i, err := seqNodeIndexPath(p)
+			indx, err := seqNodeIndexPath(p)
+			//log.Printf("set: found index %d", indx)
 			if err == nil {
 				content := cn.Content()
-				if i >= int64(len(content)) {
+				if indx >= int64(len(content)) {
 					// we don't create by index
-					return fmt.Errorf("index %d is too big", i)
+					return fmt.Errorf("index %d is too big", indx)
 				}
-				cn = yaml.NewRNode(content[i])
-				continue
+				//log.Printf("building content: %v", content[indx])
+				if i < len(path)-1 {
+					cn = yaml.NewRNode(content[indx])
+					continue
+				}
+				child := yaml.NewRNode(content[indx])
+				if child.YNode().Kind == yaml.ScalarNode {
+					// converting index to brackets format
+					p = fmt.Sprintf("[=%s]", yaml.GetValue(child))
+				} else {
+					return fmt.Errorf("don't support case when it's necesary to find uniq param")
+				}
 			}
 		}
 
