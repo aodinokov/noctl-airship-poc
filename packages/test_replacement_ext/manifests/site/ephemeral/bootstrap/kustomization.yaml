@@ -1,10 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../../../type/gating
+- ../../../type/gating
 
 generators:
-  - hostgenerator
+#  - hostgenerator
 
 patchesStrategicMerge:
-  - baremetalhost.yaml
+#  - baremetalhost.yaml
+
+transformers:
+- ../../../type/gating/replacements

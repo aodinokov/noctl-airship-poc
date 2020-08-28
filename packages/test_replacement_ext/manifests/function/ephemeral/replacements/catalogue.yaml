@@ -1,0 +1,10 @@
+apiVersion: builtin
+kind: PatchStrategicMergeTransformer
+metadata:
+  name: epehmeral-catalogue-cleanup
+patches: |-
+  apiVersion: airshipit.org/v1alpha1
+  kind: VariableCatalogue
+  metadata:
+    name: ephemeral-catalogue 
+  $patch: delete

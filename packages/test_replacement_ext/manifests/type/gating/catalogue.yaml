@@ -1,0 +1,6 @@
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: type-gating-catalogue
+versions:
+  k8s: 1.18.9

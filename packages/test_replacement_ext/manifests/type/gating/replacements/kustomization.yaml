@@ -1,0 +1,4 @@
+resources:
+- ephemeral-catalogue.yaml
+- ../../../function/ephemeral/replacements
+- catalogue.yaml

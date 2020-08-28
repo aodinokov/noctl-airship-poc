@@ -1,0 +1,24 @@
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: ephemeral-catalogue-replacement
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/replacement-default:v0.0.1
+replacements:
+- source:
+    multiref:
+      refs:
+      - objref:
+          name: type-gating-catalogue
+        fieldref: versions.k8s
+      template: |-
+        {{ index .Values 0 }}-00
+  target:
+    objref:
+      name: ephemeral-catalogue
+    fieldrefs:
+    - versions.kubelet
+    - versions.kubeadm
+    - versions.kubectl

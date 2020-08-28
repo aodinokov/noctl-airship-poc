@@ -1,0 +1,10 @@
+apiVersion: builtin
+kind: PatchStrategicMergeTransformer
+metadata:
+  name: type-gating-catalogue-cleanup
+patches: |-
+  apiVersion: airshipit.org/v1alpha1
+  kind: VariableCatalogue
+  metadata:
+    name: type-gating-catalogue 
+  $patch: delete

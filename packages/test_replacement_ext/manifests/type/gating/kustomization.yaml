@@ -1,2 +1,3 @@
 resources:
+  - catalogue.yaml
   - ../../function/ephemeral
