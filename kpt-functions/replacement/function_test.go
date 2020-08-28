@@ -677,6 +677,65 @@ stringData:
     - value1
 `,
 		},
+		{
+                        cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: notImportantHere
+replacements:
+- source:
+    objref:
+      kind: VariableCatalogue
+      name: source
+    fieldref: values.field1
+  target:
+    objref:
+      kind: Secret
+    fieldrefs:
+    - stringData.userData|write_files.[path=/etc/kubernetes/admin.conf].content|apiVersion`,
+                        in: `
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  field1: value1
+  field2: value2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  userData: |
+    write_files:
+    - content: |
+        apiVersion: v1
+      path: /etc/kubernetes/admin.conf
+`,
+                        expectedOut: `apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  field1: value1
+  field2: value2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  userData: |
+    write_files:
+    - content: |
+        apiVersion: value1
+      path: /etc/kubernetes/admin.conf
+`,
+		},
 	}
 
 	for i, ti := range tc {
