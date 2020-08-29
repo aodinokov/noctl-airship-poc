@@ -224,4 +224,40 @@ There are 2 possible ways to modify parameters on site level:
  
 If the type layer already doesn't have any duplicated parameters, there shouldn't be any need in the replacement approach, since changing one of the parameters already has to apply changes to all dependend fields. The site-layer in most cases works only with specific values that's why the approach with SMP for the type catalogue will be simpler and quicker.
 
-TBD: create SMP that modifies k8s version and ask the user to uncomment it in the kustomize.yaml. the versions in output.yaml must change
+To make sure it's working let's check [k8s-version-smp.yaml](manifests/site/ephemeral/bootstrap/k8s-version-smp.yaml):
+
+```
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: type-gating-catalogue
+versions:
+  k8s: 1.18.8
+```
+
+To make this change it's necessary just to uncomment the line in the [kustomization.yaml](manifests/site/ephemeral/bootstrap/kustomization.yaml), so it looks as:
+
+```
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../type/gating
+
+patchesStrategicMerge:
+- k8s-version-smp.yaml
+
+transformers:
+- ../../../type/gating/replacements
+```
+
+Run the demo once again. If you compare the current result with the previous the will be the following difference:
+
+```
+$ diff expected_output.yaml output.yaml
+42c42
+<       apt install -y kubelet=1.18.9-00 kubelet=1.18.9-00 kubelet=1.18.9-00
+---
+>       apt install -y kubelet=1.18.8-00 kubelet=1.18.8-00 kubelet=1.18.8-00
+```
+
+This technique works because of the order in which kustomize runs plugins - the order is described in the [official documentation](https://kubernetes-sigs.github.io/kustomize/guides/plugins/#execution). Resources and generators run first, after that all builtin plugins and after that all transformers.
