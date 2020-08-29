@@ -8,6 +8,7 @@ generators:
 
 patchesStrategicMerge:
 #  - baremetalhost.yaml
+# - k8s-version-smp.yaml
 
 transformers:
 - ../../../type/gating/replacements
