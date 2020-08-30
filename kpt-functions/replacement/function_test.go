@@ -463,7 +463,7 @@ replacements:
     objref:
       kind: Secret
     fieldrefs:
-    - stringData.userData|bootcmd.[=mkdir /mnt/vda]`,
+    - stringData.userData|bootcmd.[=mkdir /mnt/vda || echo error]`,
 			in: `
 apiVersion: airshipit.org/v1alpha1
 kind: VariableCatalogue
@@ -481,7 +481,7 @@ type: Opaque
 stringData:
   userData: |
     bootcmd:
-    - mkdir /mnt/vda
+    - mkdir /mnt/vda || echo error
 `,
 			expectedOut: `apiVersion: airshipit.org/v1alpha1
 kind: VariableCatalogue
@@ -678,7 +678,7 @@ stringData:
 `,
 		},
 		{
-                        cfg: `
+			cfg: `
 apiVersion: airshipit.org/v1alpha1
 kind: ReplacementTransformer
 metadata:
@@ -694,7 +694,7 @@ replacements:
       kind: Secret
     fieldrefs:
     - stringData.userData|write_files.[path=/etc/kubernetes/admin.conf].content|apiVersion`,
-                        in: `
+			in: `
 apiVersion: airshipit.org/v1alpha1
 kind: VariableCatalogue
 metadata:
@@ -715,7 +715,7 @@ stringData:
         apiVersion: v1
       path: /etc/kubernetes/admin.conf
 `,
-                        expectedOut: `apiVersion: airshipit.org/v1alpha1
+			expectedOut: `apiVersion: airshipit.org/v1alpha1
 kind: VariableCatalogue
 metadata:
   name: source
