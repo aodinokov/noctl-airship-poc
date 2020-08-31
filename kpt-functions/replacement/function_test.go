@@ -736,6 +736,133 @@ stringData:
       path: /etc/kubernetes/admin.conf
 `,
 		},
+		// Negative test for target incorrct fieldref (must be an eeor)
+		{
+			expectedErr: true,
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: notImportantHere
+replacements:
+- source:
+    objref:
+      kind: VariableCatalogue
+      name: source
+    fieldref: values.field1
+  target:
+    objref:
+      kind: Secret
+    fieldrefs:
+    - stringData.userData|write_files.[path=/etc/kubernetes/nofile.conf].content|apiVersion`,
+			in: `
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  field1: value1
+  field2: value2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  userData: |
+    write_files:
+    - content: |
+        apiVersion: v1
+      path: /etc/kubernetes/admin.conf
+`,
+		},
+		// negative for incorrect source fieldref
+		{
+			expectedErr: true,
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: notImportantHere
+replacements:
+- source:
+    objref:
+      kind: VariableCatalogue
+      name: source
+    fieldref: values.field3
+  target:
+    objref:
+      kind: Secret
+    fieldrefs:
+    - stringData.userData|write_files.[path=/etc/kubernetes/admin.conf].content|apiVersion`,
+			in: `
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  field1: value1
+  field2: value2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  userData: |
+    write_files:
+    - content: |
+        apiVersion: v1
+      path: /etc/kubernetes/admin.conf
+`,
+		},
+		// negative for incorrect source fieldref for multiref
+		{
+			expectedErr: true,
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: notImportantHere
+replacements:
+- source:
+    multiref:
+      refs:
+      - objref:
+          kind: VariableCatalogue
+          name: source
+        fieldref: values.field3
+    template: |-
+      {{ index .Values 0 }}-posfix
+  target:
+    objref:
+      kind: Secret
+    fieldrefs:
+    - stringData.userData|write_files.[path=/etc/kubernetes/admin.conf].content|apiVersion`,
+			in: `
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: source
+values:
+  field1: value1
+  field2: value2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: node1-bmc-secret
+type: Opaque
+stringData:
+  userData: |
+    write_files:
+    - content: |
+        apiVersion: v1
+      path: /etc/kubernetes/admin.conf
+`,
+		},
 	}
 
 	for i, ti := range tc {
@@ -756,6 +883,10 @@ stringData:
 		err = f.Exec(nodes)
 		if err != nil && !ti.expectedErr {
 			t.Errorf("exec %d returned unexpected error %v for %s", i, err, ti.cfg)
+			continue
+		}
+		if ti.expectedErr {
+			//t.Logf("expected error, msg %v", err)
 			continue
 		}
 		out := &bytes.Buffer{}

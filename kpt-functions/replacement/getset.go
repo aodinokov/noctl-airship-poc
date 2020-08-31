@@ -111,6 +111,9 @@ func getFieldValue(node *yaml.RNode, fieldRef string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	if node == nil {
+		return nil, fmt.Errorf("field %s doesn't exist", fieldRef)
+	}
 	if node.YNode().Kind == yaml.ScalarNode {
 		return yaml.GetValue(node), nil
 	}
