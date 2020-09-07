@@ -1,0 +1,5 @@
+resources:
+- ex.yaml
+
+transformers:
+- sops.yaml

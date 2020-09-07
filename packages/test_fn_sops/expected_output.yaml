@@ -1,0 +1,9 @@
+apiVersion: airshipit.org/v1alpha1
+k8s-password: multipass
+kind: VariableCatalogue
+metadata:
+  annotations:
+    config.kubernetes.io/path: variablecatalogue_type-gating-catalogue.yaml
+  name: type-gating-catalogue
+nnn-password: k8spassphrase
+user-password: thisisapassword
