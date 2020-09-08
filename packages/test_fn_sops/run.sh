@@ -22,6 +22,6 @@ KUSTOMIZE_PLUGIN_HOME=$(pwd)/manifests SOPS_IMPORT_PGP=$(cat sops_functional_tes
 # example 3:
 rm -rf lr
 cp local-resource/ lr -r
-SOPS_IMPORT_PGP=$(cat sops_functional_tests_key.asc) kpt fn run ./lr
+SOPS_IMPORT_PGP=$(cat sops_functional_tests_key.asc) ./kustomize fn run ./lr
 # if you have your own gpg already initialized you can put keys to kpt like this:
-#SOPS_IMPORT_PGP=$(gpg --armor --export-secret-keys) kpt fn run ./lr
+#SOPS_IMPORT_PGP=$(gpg --armor --export-secret-keys) ./kustomize fn run ./lr
