@@ -8,3 +8,5 @@ metadata:
         image: quay.io/aodinokov/sops:v0.0.2
 data:
   ignore-mac: true
+  override-detached-annotations: |-
+    config.kubernetes.io/index, config.kubernetes.io/path, config.k8s.io/id, kustomize.config.k8s.io/id

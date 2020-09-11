@@ -863,6 +863,65 @@ stringData:
       path: /etc/kubernetes/admin.conf
 `,
 		},
+		{
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: test-for-numeric-conversion
+replacements:
+- source:
+    objref:
+      kind: Pod
+      name: pod
+    fieldref: spec.containers[0].image
+  target:
+    objref:
+      kind: Deployment
+    fieldrefs:
+    - spec.template.spec.containers[name=myapp-container].image%TAG%`,
+			in: `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod
+spec:
+  containers:
+  - name: repl
+    image: 12345
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy2
+spec:
+  template:
+    spec:
+      containers:
+      - image: busybox:TAG
+        name: myapp-container
+`,
+			expectedOut: `apiVersion: v1
+kind: Pod
+metadata:
+  name: pod
+spec:
+  containers:
+  - name: repl
+    image: 12345
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy2
+spec:
+  template:
+    spec:
+      containers:
+      - image: busybox:12345
+        name: myapp-container
+`,
+		},
 	}
 
 	for i, ti := range tc {
