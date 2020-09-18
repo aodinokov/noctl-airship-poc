@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: build-iso-docs
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: gcr.io/kpt-functions/kustomize-build
+    config.kubernetes.io/local-config: 'true'
+data:
+  path: /manifests/build-iso-docs
+  '--reorder': none
+---
+apiVersion: airshipit.org/v1alpha1
+kind: PodEmulator
+metadata:
+  name: execute-iso-docs
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/podemul-ubuntu_stable:v0.0.1
+        network:
+          required: true
+        user: "root"
+spec:
+  executables:
+  - name: build-iso
+    cmdline: /tmp/image-builder/build-iso.sh
+    env:
+    - name: BUILDER_CONFIG
+      value: /tmp/image-builder/isogen.yaml
+    - name: HOME
+      value: /tmp
+    - name: PUT_SERVER
+      valueFrom:
+        secretKeyRef:
+          name: put-server-creds
+          key: putSever
+    - name: PUT_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: put-server-creds
+          key: putUsername
+    - name: PUT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: put-server-creds
+          key: putPassword
+    volumeMounts:
+    - name: default
+      mountPath: /tmp/image-builder
+  volumes:
+  - name: default
+    secret:
+      name: image-builder
+      defaultMode: 0777

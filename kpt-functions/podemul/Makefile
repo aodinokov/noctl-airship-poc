@@ -39,4 +39,5 @@ vet:
 
 image:
 	docker build -f image/Dockerfile.debian_stable image -t quay.io/aodinokov/podemul-debian_stable:v0.0.1
+	docker build -f image/Dockerfile.ubuntu_stable image -t quay.io/aodinokov/podemul-ubuntu_stable:v0.0.1
 	#docker push quay.io/aodinokov/podemul-debian_stable:v0.0.1
