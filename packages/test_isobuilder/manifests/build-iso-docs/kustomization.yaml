@@ -31,3 +31,6 @@ secretGenerator:
     - putSever=http://10.23.24.1:8099
     - putUsername=username
     - putPassword=password
+
+generators:
+- templater-ex.yaml

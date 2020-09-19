@@ -5,10 +5,14 @@ metadata:
   annotations:
     config.k8s.io/function: |
       container:
-        image: gcr.io/kpt-functions/kustomize-build
+        image: quay.io/aodinokov/kustomize_build_dind:0.0.1 #gcr.io/kpt-functions/kustomize-build:stable
+        user: "root"
+        envs:
+        - KUSTOMIZE_PLUGIN_HOME=/manifests
     config.kubernetes.io/local-config: 'true'
 data:
   path: /manifests/build-iso-docs
+  '--enable_alpha_plugins': '--enable_alpha_plugins'
   '--reorder': none
 ---
 apiVersion: airshipit.org/v1alpha1

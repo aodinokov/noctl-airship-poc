@@ -12,5 +12,6 @@ echo 'kind: x' |
   ./kpt fn run \
     --fn-path fn/00_ephemeral_build_iso/fn.yaml \
     --network \
+    --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock,rw=true \
     --mount type=bind,src="$(pwd)"/manifests/,dst=/manifests/ \
     --mount type=bind,src="$(pwd)"/workdir/,dst=/workdir/,rw=true
