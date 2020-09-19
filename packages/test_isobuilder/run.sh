@@ -6,7 +6,11 @@ fi
 #KUSTOMIZE_PLUGIN_HOME=$(pwd)/manifests ./kustomize build --enable_alpha_plugins manifests/site/ephemeral/bootstrap/  > output.yaml
 #diff manifests/function/ephemeral/secret.yaml output.yaml > changes.diff
 
+[ -d manifests/kustomize/plugin/ ] || mkdir -p manifests/kustomize/plugin/
 [ -d workdir/ ] || mkdir workdir/
+
+# build image
+docker build -f build/kustomize_build_dind.Dockerfile ./ -t quay.io/aodinokov/kustomize_build_dind:0.0.1
 
 echo 'kind: x' |
   ./kpt fn run \

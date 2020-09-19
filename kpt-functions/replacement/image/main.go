@@ -13,8 +13,8 @@ import (
 )
 
 func main() {
-	log.Print("started")
-	defer log.Print("Finished")
+	//log.Print("started")
+	//defer log.Print("Finished")
 
 	cfg := replacement.FunctionConfig{}
 	resourceList := &framework.ResourceList{FunctionConfig: &cfg}
