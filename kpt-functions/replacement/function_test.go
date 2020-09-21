@@ -926,8 +926,7 @@ spec:
 
 	for i, ti := range tc {
 		fcfg := FunctionConfig{}
-		err := yaml.Unmarshal([]byte(ti.cfg), &fcfg)
-		if err != nil {
+		if err := yaml.Unmarshal([]byte(ti.cfg), &fcfg); err != nil {
 			t.Errorf("can't unmarshal config %s: %v continue", ti.cfg, err)
 			continue
 		}
@@ -938,9 +937,12 @@ spec:
 			continue
 		}
 
-		f := Function{Config: &fcfg}
-		err = f.Exec(nodes)
-		if err != nil && !ti.expectedErr {
+		f, err := NewFunction(fcfg)
+		if err != nil {
+			t.Errorf("wrong function config %v. continue",err)
+			continue
+		}
+		if err := f.Exec(nodes); err != nil && !ti.expectedErr {
 			t.Errorf("exec %d returned unexpected error %v for %s", i, err, ti.cfg)
 			continue
 		}
