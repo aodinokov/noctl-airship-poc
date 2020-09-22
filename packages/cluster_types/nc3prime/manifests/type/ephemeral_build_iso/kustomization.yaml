@@ -1,0 +1,42 @@
+secretGenerator:
+  - name: image-builder
+    options:
+      disableNameSuffixHash: true
+    files:
+    - files/build.sh
+    - files/functions.sh
+    - files/grub.conf
+    - files/packages_install.sh
+    - files/meta_data.json
+    literals:
+    - |
+        isogen.yaml=builder:
+          userDataFileName: /tmp/image-data/userData
+          networkConfigFileName : /tmp/image-data/networkData
+          outputMetadataFileName: output-metadata.yaml
+        container:
+          volume: ./cache:/cache
+    - |
+        build-iso.sh=#!/bin/bash
+        BASEDIR="$(dirname "$(realpath "$0")")"
+        CHROOT="${HOME}/LIVE_BOOT/chroot"
+        mkdir -p "${CHROOT}"
+        "${BASEDIR}/build.sh" >&2
+        echo curl "${PUT_SERVER}" -u "${PUT_USERNAME}":"${PUT_PASSWORD}" --upload-file /cache/ubuntu-focal.iso >&2
+  # it's is set here, but it can come from other docs/kustomizations
+  - name: put-server-creds
+    options:
+      disableNameSuffixHash: true
+    literals:
+    - putSever=http://10.23.24.1:8099
+    - putUsername=username
+    - putPassword=password
+
+  - name: ephemeral-bmc-secret
+    options:
+      disableNameSuffixHash: true
+    files:
+    - userData=data/user-data.yaml
+    - networkData=data/network-config.yaml
+#generators:
+#- templater-ex.yaml

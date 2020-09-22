@@ -1,0 +1,20 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: cluster-exm01a
+dependencies:
+- name: phases
+  git:
+    repo: https://github.com/aodinokov/noctl-airship-poc.git
+    directory: packages/cluster_types/nc3prime/phases
+    ref: master
+- name: manifests/type
+  git:
+    repo: https://github.com/aodinokov/noctl-airship-poc.git
+    directory: packages/cluster_types/nc3prime/manifests/type
+    ref: master
+- name: manifests/site/config/infra/
+  git:
+    repo: https://github.com/aodinokov/noctl-airship-poc.git
+    directory: packages/cluster_infras/c1/manifests/site/config/infra/
+    ref: master
