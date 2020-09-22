@@ -1,4 +1,0 @@
-resources:
-  - ../baremetal-prime/resources/
-transformers:
-  - ../baremetal-prime/transformers/

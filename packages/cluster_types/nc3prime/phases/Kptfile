@@ -1,0 +1,5 @@
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: type-nc3prime-phases
+dependencies:

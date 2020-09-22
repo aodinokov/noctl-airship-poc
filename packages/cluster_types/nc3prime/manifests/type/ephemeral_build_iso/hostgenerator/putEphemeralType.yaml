@@ -1,0 +1,18 @@
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: m3-host-replacements-ephemeral
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/replacement-default:v0.0.2
+replacements:
+- source:
+    objref:
+      name: host-catalogue
+    fieldref: hosts.types.ephemeral
+  target:
+    objref:
+      kind: Templater
+      name: m3-host-template
+    fieldrefs: [values.hostsToGenerate]

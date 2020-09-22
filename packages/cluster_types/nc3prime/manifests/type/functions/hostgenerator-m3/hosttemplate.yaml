@@ -1,0 +1,86 @@
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: m3-host-template
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/templater-default:v0.0.1
+values:
+  # hosts:
+  #    (filled in from the comprehensive site-wide host-catalogue)
+  # hostsToGenerate:
+  #    (filled in with phase-specific host-generation-catalogue)
+  # commonNetworking:
+  #    (filled in with the type-specific common-networking-catalogue)
+
+  # Additional hardwareProfiles can be defined within their own functions,
+  # and then substituted into the stanza below.
+  # See function/hardwareprofile-example for an example of how to do this.
+  hardwareProfiles:
+    default:
+      # Reference: https://github.com/metal3-io/metal3-docs/blob/master/design/baremetal-operator/bios-config.md
+      firmware:
+        sriovEnabled: false
+        virtualizationDisabled: false
+        simultaneousMultithreadingDisabled: false
+
+template: |
+  {{- $envAll := . }}
+  {{- range .hostsToGenerate }}
+  {{- $name := .name }}
+  {{- $resourceName := $name }}
+  {{- if hasKey . "resourceName" }}
+  {{-   $resourceName = .resourceName }}
+  {{- end }}
+  {{- $host := index $envAll.hosts $name }}
+  {{- $hardwareProfile := index $envAll.hardwareProfiles $host.hardwareProfile }}
+  ---
+  apiVersion: metal3.io/v1alpha1
+  kind: BareMetalHost
+  metadata:
+    name: {{ $resourceName }}
+  spec:
+    online: false
+    bootMACAddress: {{ $host.macAddress }}
+    bootMode: {{ $host.bootMode }}
+    networkData:
+      name: {{ $resourceName }}-network-data
+      namespace: default
+    bmc:
+      address: {{ $host.bmcAddress }}
+      credentialsName: {{ $resourceName }}-bmc-secret
+    firmware:
+  {{ toYaml $hardwareProfile.firmware | indent 4 }}
+  ---
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: {{ $resourceName }}-bmc-secret
+  data:
+    username: {{ $host.bmcUsername | b64enc }}
+    password: {{ $host.bmcPassword | b64enc }}
+  type: Opaque
+  ---
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: {{ $resourceName }}-network-data
+  stringData:
+    networkData: |
+      links:
+        {{- range $envAll.commonNetworking.links }}
+      - {{ toYaml . | indent 6 | trim }}
+        {{- if $host.macAddresses }}
+        ethernet_mac_address: {{ index $host.macAddresses .id }}
+        {{- end }}
+        {{- end }}
+      networks:
+        {{- range $envAll.commonNetworking.networks }}
+      - {{ toYaml . | indent 6 | trim }}
+        ip_address: {{ index $host.ipAddresses .id }}
+        {{- end }}
+      services:
+  {{ toYaml $envAll.commonNetworking.services | indent 6 }}
+  type: Opaque
+  {{ end -}}
