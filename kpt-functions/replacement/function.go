@@ -97,67 +97,47 @@ type Function struct {
 	Config *FunctionConfig
 }
 
-func NewFunction(cfg *FunctionConfig) (*Function, error) {
-	for _, r := range cfg.Replacements {
-		if r.Source == nil {
-			return nil, fmt.Errorf("`from` must be specified in one replacement")
-		}
-		if r.Target == nil {
-			return nil, fmt.Errorf("`to` must be specified in one replacement")
-		}
-		count := 0
-		if r.Source.ObjRef != nil {
-			count += 1
-		}
-		if r.Source.Value != "" {
-			count += 1
-		}
-		if r.Source.MultiRef != nil {
-			count += 1
-		}
-		if count > 1 {
-			return nil, fmt.Errorf("only one of fieldref and value is allowed in one replacement")
-		}
+func (r Replacement) Validate() error {
+	if r.Source == nil {
+		return fmt.Errorf("`from` must be specified in one replacement")
 	}
-
-	fn := Function{Config: cfg}
-	return &fn, nil
+	if r.Target == nil {
+		return fmt.Errorf("`to` must be specified in one replacement")
+	}
+	count := 0
+	if r.Source.ObjRef != nil {
+		count += 1
+	}
+	if r.Source.Value != "" {
+		count += 1
+	}
+	if r.Source.MultiRef != nil {
+		count += 1
+	}
+	// @aodinokov, Should it be equal 1?
+	if count > 1 {
+		return fmt.Errorf("only one of fieldref and value is allowed in one replacement")
+	}
+	return nil
 }
 
-func (f *Function) Exec(items []*yaml.RNode) error {
-	for _, r := range f.Config.Replacements {
-
-		var value interface{}
-
-		value, err := prepareValue(items, r.Source)
-		if err != nil {
-			return err
-		}
-
-		err = apply(items, r.Target, value)
-		if err != nil {
+func (cfg FunctionConfig) Validate() error {
+	for _, r := range cfg.Replacements {
+		if err := r.Validate(); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func prepareValue(items []*yaml.RNode, s *Source) (interface{}, error) {
-	if s.Value != "" {
-		return s.Value, nil
+func NewFunction(cfg FunctionConfig) (*Function, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
-	if s.ObjRef != nil {
-		return prepareValueFromObjRefFieldRef(items, s.ObjRef, s.FieldRef)
-	}
-	if s.MultiRef != nil {
-		return prepareValueFromMultiRef(items, s.MultiRef)
-	}
-	return "", nil
+	return &Function{Config: &cfg}, nil
 }
 
-func prepareValueFromObjRefFieldRef(
-	items []*yaml.RNode, objRef *SourceObjRef, fieldRef string) (interface{}, error) {
-
+func (objRef SourceObjRef) prepareValue(items []*yaml.RNode, fieldRef string) (interface{}, error) {
 	node, err := objRef.FindOne(items)
 	if err != nil {
 		return "", err
@@ -165,24 +145,19 @@ func prepareValueFromObjRefFieldRef(
 	if fieldRef == "" {
 		fieldRef = ".metadata.name"
 	}
-	v, err := getFieldValue(node, fieldRef)
-	if err != nil {
-		return "", err
-	}
-	return v, nil
+	return getFieldValue(node, fieldRef)
 }
 
-func prepareValueFromMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (string, error) {
+func (mObjRef MultiSourceObjRef) prepareValue(items []*yaml.RNode) (string, error) {
 	data := struct {
 		Values []string
 	}{
-		Values: make([]string, 0, len(m.Refs)),
+		Values: make([]string, 0, len(mObjRef.Refs)),
 	}
-	for i := range m.Refs {
-		v, err := prepareValueFromObjRefFieldRef(
-			items, m.Refs[i].ObjRef, m.Refs[i].FieldRef)
+	for i := range mObjRef.Refs {
+		v, err := mObjRef.Refs[i].ObjRef.prepareValue(items, mObjRef.Refs[i].FieldRef)
 		if err != nil {
-			return "", fmt.Errorf("error preparing multiref %v ref %d: %w", m, i, err)
+			return "", fmt.Errorf("error preparing multiref %v ref %d: %w", mObjRef, i, err)
 		}
 		sv, ok := v.(string)
 		if !ok {
@@ -192,18 +167,46 @@ func prepareValueFromMultiRef(items []*yaml.RNode, m *MultiSourceObjRef) (string
 	}
 
 	var out bytes.Buffer
-	tmpl, err := template.New("tmpl").Funcs(sprig.TxtFuncMap()).Parse(m.Template)
+	tmpl, err := template.New("tmpl").Funcs(sprig.TxtFuncMap()).Parse(mObjRef.Template)
 	if err != nil {
-		return "", fmt.Errorf("error parsing template %s: %w", m.Template, err)
+		return "", fmt.Errorf("error parsing template %s: %w", mObjRef.Template, err)
 	}
 
-	err = tmpl.Execute(&out, data)
-	if err != nil {
+	if err := tmpl.Execute(&out, data); err != nil {
 		return "", fmt.Errorf("error executing template %s, data %v: %w",
-			m.Template, data, err)
+			mObjRef.Template, data, err)
 	}
 
 	return out.String(), nil
+}
+
+func (s Source) prepareValue(items []*yaml.RNode) (interface{}, error) {
+	if s.Value != "" {
+		return s.Value, nil
+	}
+	if s.ObjRef != nil {
+		return s.ObjRef.prepareValue(items, s.FieldRef)
+	}
+	if s.MultiRef != nil {
+		return s.MultiRef.prepareValue(items)
+	}
+	// @aodinokov, Should it be an error?
+	return "", nil
+}
+
+func (f Function) Exec(items []*yaml.RNode) error {
+	for _, r := range f.Config.Replacements {
+		value, err := r.Source.prepareValue(items)
+		if err != nil {
+			return err
+		}
+
+		if err := apply(items, r.Target, value); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func apply(items []*yaml.RNode, t *Target, value interface{}) error {
@@ -211,10 +214,10 @@ func apply(items []*yaml.RNode, t *Target, value interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error filtering by objref %v: %w", t.ObjRef, err)
 	}
+
 	for _, node := range matching {
 		for _, fieldref := range t.FieldRefs {
-			err := setFieldValueHandlingRegex(node, fieldref, value)
-			if err != nil {
+			if err := setFieldValueHandlingRegex(node, fieldref, value); err != nil {
 				return fmt.Errorf("error setting value for objref %v, fieldref %s, value %s, node %v: %w",
 					t.ObjRef, fieldref, value, node, err)
 			}
@@ -319,8 +322,7 @@ func findMatching(items []*yaml.RNode, flts []kio.Filter) ([]*yaml.RNode, error)
 		Outputs: []kio.Writer{&kio.PackageBuffer{}},
 	}
 
-	err := p.Execute()
-	if err != nil {
+	if err := p.Execute(); err != nil {
 		return nil, err
 	}
 	return p.Outputs[0].(*kio.PackageBuffer).Nodes, nil
