@@ -21,6 +21,7 @@ cd exm01a/
 
 cat Kptfile |
   ../kpt fn run \
+    --log-steps \
     --fn-path phases/gf \
     --network \
     --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock,rw=true \
