@@ -1,0 +1,38 @@
+apiVersion: v1alpha1
+kind: Grep
+metadata:
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/grep:v0.0.1
+data:
+  flt: |
+    filters:
+    - path:
+      - metadata
+      - annotations
+      - "test.org/nodeploy" 
+      value: true
+      invertMatch: true
+---
+apiVersion: kpt.dev/v1alpha1
+kind: Kptfile
+metadata:
+  name: cluster-exm01a
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cfg
+  annotations:
+    "test.org/nodeploy": true
+data:
+  x: y
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cfg2
+data:
+  x: y
+

@@ -37,9 +37,10 @@ data:
 			cfg: `
 data:
   flt1: |
-    path:
-    - kind
-    value: Kptfile
+    filters:
+    - path:
+      - kind
+      value: Kptfile
 `,
 			expectedOut: `apiVersion: kpt.dev/v1alpha1
 kind: Kptfile
@@ -47,12 +48,12 @@ metadata:
   name: cluster-exm01a
 `,
 		},
-                {
-                        in: `
+		{
+			in: `
 apiVersion: kpt.dev/v1alpha1
 kind: Kptfile
 metadata:
-  name: cluster-exm01a
+  name: cluster-exm02a
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -61,22 +62,23 @@ metadata:
 data:
   x: y
 `,
-                        cfg: `
+			cfg: `
 data:
   flt1: |
-    path:
-    - kind
-    value: Kptfile
-    invertMatch: true
+    filters:
+    - path:
+      - kind
+      value: Kptfile
+      invertMatch: true
 `,
-                        expectedOut: `apiVersion: v1
+			expectedOut: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cfg
 data:
   x: y
 `,
-                },
+		},
 	}
 
 	for i, ti := range tc {

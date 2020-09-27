@@ -19,3 +19,7 @@ test:
 
 vet:
 	go vet ./...
+
+image:
+	docker build -f Dockerfile ./ -t quay.io/aodinokov/grep:v0.0.1
+	#docker push quay.io/aodinokov/grep:v0.0.1
