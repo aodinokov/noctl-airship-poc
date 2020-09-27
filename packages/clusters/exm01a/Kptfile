@@ -1,7 +1,7 @@
 apiVersion: kpt.dev/v1alpha1
 kind: Kptfile
 metadata:
-  name: cluster-exm01a
+  name: cluster
 dependencies:
 - name: phases
   git:

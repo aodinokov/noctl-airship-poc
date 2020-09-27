@@ -1,0 +1,17 @@
+apiVersion: v1alpha1
+kind: Grep
+metadata:
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/grep:v0.0.1
+data:
+  flt: |
+    filters:
+    - path:
+      - kind
+      value: Kptfile
+    - path:
+      - metadata
+      - name
+      value: cluster
