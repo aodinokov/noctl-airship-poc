@@ -22,6 +22,8 @@ metadata:
     config.kubernetes.io/function: |
       container:
         image: quay.io/aodinokov/redfish-default:v0.0.1
+        network:
+          required: true
 spec:
   operations:
   - action: doRemoteDirect

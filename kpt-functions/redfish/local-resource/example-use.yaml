@@ -5,6 +5,8 @@ metadata:
     config.kubernetes.io/function: |
       container:
         image: quay.io/aodinokov/redfish-default:v0.0.1
+        network:
+          required: true
 spec:
   operations:
   - action: doRemoteDirect
@@ -21,7 +23,7 @@ metadata:
   namespace: default
 spec:
   bmc:
-    address: redfish+http://10.23.25.2:8000/redfish/v1/Systems/air-target-2
+    address: redfish+http://10.23.25.1:8000/redfish/v1/Systems/air-ephemeral
     credentialsName: ephemeral-bmc-secret
   bootMACAddress: 52:54:00:b6:ed:02
   bootMode: UEFI
