@@ -4,45 +4,46 @@ metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: quay.io/aodinokov/redfish-debian_stable:v0.0.1
+        image: quay.io/aodinokov/redfish-default:v0.0.1
 spec:
   operations:
   - action: doRemoteDirect
-  bmh:
-    name: bmo-master-0
-    namespace: bmo-project
+  bmhRef:
+    name: ephemeral
+    namespace: default
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
-  name: bmo-master-0
-  namespace: bmo-project
+  annotations:
+    config.kubernetes.io/path: baremetalhost_ephemeral.yaml
+  name: ephemeral
+  namespace: default
 spec:
   bmc:
-    address: redfish://127.0.0.1:8443/redfish/v1/Systems/air-ephemeral
-    credentialsName: bmo-master-0-bmc-secret
-  bootMACAddress: 98:03:9b:61:80:48
-  consumerRef:
-    apiVersion: machine.openshift.io/v1beta1
-    kind: Machine
-    name: bmo-master-0
-    namespace: bmo-project
-  externallyProvisioned: true
-  hardwareProfile: default
+    address: redfish+http://10.23.25.2:8000/redfish/v1/Systems/air-target-2
+    credentialsName: ephemeral-bmc-secret
+  bootMACAddress: 52:54:00:b6:ed:02
+  bootMode: UEFI
+  firmware: null
   image:
-    url: http://127.0.0.1:8100/debian-custom.iso
+    url: http://10.23.24.1:8099/ubuntu-focal.iso
+  networkData:
+    name: ephemeral-network-data
+    namespace: default
   online: true
-  disableCertificateVerification: true
   rootDeviceHints:
     model: default
     vendor: default
 ---
 apiVersion: v1
+data:
+  password: cGFzc3dvcmQ=
+  username: dXNlcm5hbWU=
 kind: Secret
 metadata:
-  name: bmo-master-0-bmc-secret
-  namespace: bmo-project
+  annotations:
+    config.kubernetes.io/path: secret_ephemeral-bmc-secret.yaml
+  name: ephemeral-bmc-secret
+  namespace: default
 type: Opaque
-stringData:
-  username: username
-  password: password

@@ -195,8 +195,7 @@ func (f *OperationFunction) getCredentialsSecretValue(key string) (string, error
 
 	b64val, ok := f.CredentialsSecret.Data[key]
 	if ok {
-		var val []byte
-		_, err := base64.StdEncoding.Decode(val, b64val)
+		val, err := base64.StdEncoding.DecodeString(string(b64val))
 		if err != nil {
 			return "", err
 		}

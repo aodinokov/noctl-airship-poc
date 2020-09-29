@@ -1,0 +1,8 @@
+generators:
+- ../functions/hostgenerator-ephemeral
+- ../functions/fileserver
+
+namespace: default
+
+transformers:
+- bmhUpdater.yaml 

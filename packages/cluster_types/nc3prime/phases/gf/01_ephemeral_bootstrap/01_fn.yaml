@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: build-iso-docs
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/kustomize_build_dind:0.0.1 #gcr.io/kpt-functions/kustomize-build:stable
+        user: "root"
+        envs:
+        - KUSTOMIZE_PLUGIN_HOME=/cluster_root/manifests/type
+    config.kubernetes.io/local-config: 'true'
+data:
+  path: /cluster_root/manifests/site/ephemeral_bootstrap
+  '--enable_alpha_plugins': '--enable_alpha_plugins'
+  '--reorder': none
+---
+apiVersion: airshipit.org/v1alpha1
+kind: NodeBootstrap
+metadata:
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/redfish-default:v0.0.1
+spec:
+  operations:
+  - action: doRemoteDirect
+  bmhRef:
+    name: ephemeral
+    namespace: default

@@ -1,0 +1,45 @@
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: bmh-updater
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/replacement-default:v0.0.2
+replacements:
+- source:
+    multiref:
+      refs:
+      - objref:
+          kind: Secret
+          name: put-server-creds
+        fieldref: stringData.putSever
+      template: |-
+        {{ index .Values 0 }}/ubuntu-focal.iso
+  target:
+    objref:
+      kind: BareMetalHost
+      name: ephemeral
+    fieldrefs: [spec.image.url]
+- source:
+    value: true
+  target:
+    objref:
+      kind: BareMetalHost
+      name: ephemeral
+    fieldrefs: [spec.online]
+#TODO: get this value from site
+- source:
+    value: default
+  target:
+    objref:
+      kind: BareMetalHost
+      name: ephemeral
+    fieldrefs: [spec.rootDeviceHints.vendor]
+- source:
+    value: default
+  target:
+    objref:
+      kind: BareMetalHost
+      name: ephemeral
+    fieldrefs: [spec.rootDeviceHints.model]
