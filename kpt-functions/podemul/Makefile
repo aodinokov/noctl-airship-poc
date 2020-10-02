@@ -4,40 +4,40 @@
 .PHONY: generate license fix vet fmt test build tidy image
 
 GOBIN := $(shell go env GOPATH)/bin
+GOPATH := $(shell go env GOPATH)
 
 build:
-	(cd image && go build -v -o $(GOBIN)/config-function .)
+	go build -v -o $(GOBIN)/config-function .
 
 all: generate license build fix vet fmt test lint tidy
 
 fix:
-	(cd image && go fix ./...)
+	go fix ./...
 
 fmt:
-	(cd image && go fmt ./...)
+	go fmt ./...
 
 generate:
 	(which $(GOBIN)/mdtogo || go get sigs.k8s.io/kustomize/cmd/mdtogo)
-	(cd image && GOBIN=$(GOBIN) go generate ./...)
+	GOBIN=$(GOBIN) go generate ./...
 
 license:
 	(which $(GOBIN)/addlicense || go get github.com/google/addlicense)
 	$(GOBIN)/addlicense  -y 2020 -c "The Kubernetes Authors." -f LICENSE_TEMPLATE .
 
 tidy:
-	(cd image && go mod tidy)
+	go mod tidy
 
 lint:
 	(which $(GOBIN)/golangci-lint || go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.19.1)
-	(cd image && $(GOBIN)/golangci-lint run ./...)
+	$(GOBIN)/golangci-lint run ./...
 
 test:
-	(cd image && go test -cover ./...)
+	go test -cover ./...
 
 vet:
-	(cd image && go vet ./...)
+	go vet ./...
 
 image:
-	docker build -f image/Dockerfile.debian_stable image -t quay.io/aodinokov/podemul-debian_stable:v0.0.1
-	docker build -f image/Dockerfile.ubuntu_stable image -t quay.io/aodinokov/podemul-ubuntu_stable:v0.0.1
-	#docker push quay.io/aodinokov/podemul-debian_stable:v0.0.1
+	docker build -f Dockerfile . -t quay.io/aodinokov/podemul:v0.0.1
+	#docker push quay.io/aodinokov/podemul:v0.0.1

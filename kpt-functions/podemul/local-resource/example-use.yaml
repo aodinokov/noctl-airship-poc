@@ -1,10 +1,13 @@
+# Copyright 2020 The Kubernetes Authors.
+# SPDX-License-Identifier: Apache-2.0
+
 apiVersion: airshipit.org/v1alpha1
 kind: PodEmulator
 metadata:
   annotations:
     config.kubernetes.io/function: |
       container:
-        image: quay.io/aodinokov/podemul-debian_stable:v0.0.1
+        image: quay.io/aodinokov/podemul:v0.0.1
 spec:
   executables:
   - name: test

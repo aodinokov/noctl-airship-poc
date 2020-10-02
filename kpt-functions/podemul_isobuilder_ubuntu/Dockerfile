@@ -14,26 +14,10 @@
 
 ARG FROM=ubuntu:focal
 
-FROM golang:1.13-stretch
-ENV CGO_ENABLED=0
-WORKDIR /go/src/
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
-COPY main.go .
-RUN go build -v -o /usr/local/bin/config-function ./
+FROM quay.io/aodinokov/podemul:v0.0.1 AS podemul
 
-FROM ${FROM}
-
-LABEL org.opencontainers.image.authors='airship-discuss@lists.airshipit.org, irc://#airshipit@freenode' \
-      org.opencontainers.image.url='https://airshipit.org' \
-      org.opencontainers.image.documentation='https://airship-images.readthedocs.org' \
-      org.opencontainers.image.source='https://opendev.org/airship/images' \
-      org.opencontainers.image.vendor='The Airship Authors' \
-      org.opencontainers.image.licenses='Apache-2.0'
-
-COPY --from=0 /usr/local/bin/config-function /usr/local/bin/config-function
-
+FROM ${FROM} AS ubuntu
+COPY --from=podemul /usr/local/bin/config-function /usr/local/bin/config-function
 RUN apt-get update && apt-get install -y \
     curl\
     debootstrap \
@@ -44,8 +28,6 @@ RUN apt-get update && apt-get install -y \
     squashfs-tools \
     xorriso \
     && rm -rf /var/lib/apt/lists/*
-
 RUN curl -L https://github.com/mikefarah/yq/releases/download/2.4.0/yq_linux_amd64 -o /bin/yq \
     && chmod +x /bin/yq
-
 CMD /usr/local/bin/config-function

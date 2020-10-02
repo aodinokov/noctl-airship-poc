@@ -1,3 +1,6 @@
+// Copyright 2020 The Kubernetes Authors.
+// SPDX-License-Identifier: Apache-2.0
+
 // Package main implements pod emulation function to run arbitrary scripts and
 // is run with `kustomize config run -- DIR/`.
 package main
@@ -463,7 +466,7 @@ func (f *Function) initVolumes(e *Executable) ([]string, error) {
 				return createdVolumes, err
 			}
 		} else {
-			return createdVolumes, fmt.Errorf("volume %s has unitialized ConfigMap and Secret")
+			return createdVolumes, fmt.Errorf("volume %s has unitialized ConfigMap and Secret", vm.Name)
 		}
 	}
 	return createdVolumes, nil
