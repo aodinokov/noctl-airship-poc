@@ -1,0 +1,22 @@
+apiVersion: airshipit.org/v1alpha1
+kind: PodEmulator
+metadata:
+  name: check-ehpemeral-readiness
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/podemul:kubectl-v0.0.1
+        network:
+          required: true
+spec:
+  executables:
+  - name: test
+    cmdline: /tmp/vol/script.sh
+    volumeMounts:
+    - name: default
+      mountPath: /tmp/vol
+  volumes:
+  - name: default
+    secret:
+      name: check-ehpemeral-readiness-secret
+      defaultMode: 0777

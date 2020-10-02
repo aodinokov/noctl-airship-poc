@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ARG KUBE_LATEST_VERSION="v1.18.8"
-
 FROM node:lts-alpine AS builder
 RUN apk add bash curl git && apk update
+ARG KUBE_LATEST_VERSION="v1.18.8"
 RUN curl -L https://storage.googleapis.com/kubernetes-release/release/${KUBE_LATEST_VERSION}/bin/linux/amd64/kubectl -o /bin/kubectl \
     && chmod +x /bin/kubectl
 
