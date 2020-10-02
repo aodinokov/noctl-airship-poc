@@ -1,0 +1,24 @@
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: m3-host-replacements
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/replacement-default:v0.0.2
+replacements:
+- source:
+    multiref:
+      refs:
+      - objref:
+          kind: Secret
+          name: ephemeral-user-data
+        fieldref: stringData.userData|write_files.[path=/etc/kubernetes/admin.conf].content
+      template: |
+        {{ b64enc (index .Values 0) }}
+  target:
+    objref:
+      kind: Secret
+      name: ephemeral-admin-config
+    fieldrefs:
+    - data.adminConfig

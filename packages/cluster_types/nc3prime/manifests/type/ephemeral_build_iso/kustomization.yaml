@@ -18,17 +18,28 @@ secretGenerator:
           networkConfigFileName : /tmp/network-data/networkData
           outputMetadataFileName: output-metadata.yaml
         container:
-          volume: ./cache:/cache
+          volume: ./cache/ephemeral_build_iso:/cache/ephemeral_build_iso
     - |
         build-iso.sh=#!/bin/bash
         BASEDIR="$(dirname "$(realpath "$0")")"
         CHROOT="${HOME}/LIVE_BOOT/chroot"
         mkdir -p "${CHROOT}"
-        cp /tmp/user-data/userData /cache
-        cp /tmp/network-data/networkData /cache
+        mkdir -p /cache/ephemeral_build_iso/
+        chown $(stat -c "%u:%g" /cache) /cache/ephemeral_build_iso/
+        cp /tmp/user-data/userData /cache/ephemeral_build_iso/
+        cp /tmp/network-data/networkData /cache/ephemeral_build_iso/
+        cp /tmp/admin-config/adminConfig /cache/ephemeral_build_iso/adminConfig.yaml
         "${BASEDIR}/build.sh" >&2
-        curl "${PUT_SERVER}" -u "${PUT_USERNAME}":"${PUT_PASSWORD}" --upload-file /cache/ubuntu-focal.iso >&2
+        curl "${PUT_SERVER}" -u "${PUT_USERNAME}":"${PUT_PASSWORD}" --upload-file /cache/ephemeral_build_iso/ubuntu-focal.iso >&2
+  - name: ephemeral-admin-config
+    options:
+      disableNameSuffixHash: true
+    literals:
+    - adminConfig=empty
 
 generators:
 - ../functions/hostgenerator-ephemeral
 - ../functions/fileserver
+
+transformers:
+- copyAdminConfig.yaml 
