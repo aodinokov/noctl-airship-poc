@@ -43,6 +43,5 @@ COPY --from=builder /home/node/app /home/node/app
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 ENV PATH /usr/local/bin:$PATH
-ENV GNUPGHOME /tmp
 
 ENTRYPOINT ["node", "/home/node/app/dist/live_run.js"]
