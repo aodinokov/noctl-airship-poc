@@ -6,9 +6,28 @@ import {
   FileFormat,
   stringify,
 } from 'kpt-functions';
-import { spawn } from 'child_process';
+import { ChildProcess, spawn } from 'child_process';
 
-const LIVE_CMD = 'cmd';
+export const LIVE_CMD = 'cmd';
+
+function trimNewLine(s: string): string {
+  return s.toString().replace(/(\r\n|\n|\r)$/gm, "");
+}
+
+function onExit(childProcess: ChildProcess): Promise<void> {
+  return new Promise((resolve, reject) => {
+    childProcess.once('exit', (code: number, signal: string) => {
+      if (code === 0) {
+        resolve(undefined);
+      } else {
+        reject(new Error('Exit with error code: '+code));
+      }
+    });
+    childProcess.once('error', (err: Error) => {
+      reject(err);
+    });
+  });
+}
 
 export async function live(configs: Configs) {
   // Validate config data and read arguments.
@@ -20,22 +39,18 @@ export async function live(configs: Configs) {
   try {
     const kpt = spawn('kpt', args);
 
-    //kpt.stdin.setEncoding('utf-8');
     kpt.stdin.write(stringify(cnf, FileFormat.YAML));
+    kpt.stdin.end();
 
     kpt.stdout.on('data', (data) => {
-      console.log(`kpt stdout: ${data}`);
+      console.log(`I: ${trimNewLine(data)}`);
     });
     kpt.stderr.on('data', (data) => {
-      console.log(`kpt stderr: ${data}`);
+      console.log(`E: ${trimNewLine(data)}`);
     });
-    kpt.on('close', (code) => {
-      if (code !== 0) {
-        console.log(`kpt process exited with code ${code}`);
-	}
-	//resolve();
-    });
+    await onExit(kpt);
   }catch (err) {
+    console.log(`kpt run finished with error: ${err}`);
     configs.addResults(generalResult(err, 'error'));
   }
 }
@@ -48,7 +63,8 @@ function readLiveArguments(configs: Configs) {
   }
   configMap.forEach((value: string, key: string) => {
     if (key === LIVE_CMD) {
-      args.push('--' + key);
+      args.push('live');
+      args.push(value);
     //} else if (key === VERBOSE || key === IGNORE_MAC) {
     //  args.push('--' + key);
     } else {
@@ -60,38 +76,4 @@ function readLiveArguments(configs: Configs) {
 }
 
 live.usage = `
-Sops function (see https://github.com/mozilla/sops).
-So far supports only decrypt operation:
-runs sops -d for all documents that have field 'sops:' and put the decrypted result back.
-
-Can be configured using a ConfigMap with the following flags:
-ignore-mac: true [Optional: default empty] Ignore Message Authentication Code during decryption.
-verbose: true [Optional: default empty]    Enable sops verbose logging output.
-keyservice value [Optional: default empty] Specify the key services to use in addition to the local one.
-                                           Can be specified more than once.
-                                           Syntax: protocol://address. Example: tcp://myserver.com:5000
-override-detached-annotations: [Optional:
-default see detachedAnnotations var]       The list of annotations that didn't present when the document
-                                           was encrypted, but added by different tools later. The function
-                                           will detach them before decryption and added unchanged
-                                           after successfull decryption. This allows sops to check the
-                                           consistency of the decrypted document.
-
-For more details see 'sops --help'.
-
-Example:
-
-To decrypt the documents use:
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: my-config
-  annotations:
-    config.k8s.io/function: |
-      container:
-        image: gcr.io/kpt-functions/sops
-    config.kubernetes.io/local-config: "true"
-data:
-  verbose: true
 `;
