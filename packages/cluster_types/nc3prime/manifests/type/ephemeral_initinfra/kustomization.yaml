@@ -1,0 +1,3 @@
+resources:
+- https://docs.projectcalico.org/archive/v3.15/manifests/tigera-operator.yaml
+- ../../site/config/calico

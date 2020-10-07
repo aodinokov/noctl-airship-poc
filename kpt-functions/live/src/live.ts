@@ -56,8 +56,8 @@ function createInventory(): ConfigMap | undefined {
 
   return new ConfigMap({
     metadata: {
-      name: '{name}',
-      namespace: '{namespace}',
+      name: `${name}`,
+      namespace: `${namespace}`,
       labels: { [INVENTORY_LABEL]: id },
     },
   });
