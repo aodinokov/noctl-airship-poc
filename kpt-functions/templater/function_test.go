@@ -98,6 +98,60 @@ template: |
   {{ end }`,
 			expectedErr: true,
 		},
+		{
+			in: `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map1
+`,
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: notImportantHere
+template: |
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: map2
+`,
+			expectedOut: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map2
+`,
+		},
+		{
+			in: `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map1
+`,
+			cfg: `
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: notImportantHere
+cleanPipeline: true
+template: |
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: map2
+`,
+			expectedOut: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: map2
+`,
+		},
 	}
 
 	for i, ti := range tc {

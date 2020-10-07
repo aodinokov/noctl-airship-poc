@@ -13,10 +13,12 @@ import (
 
 type FunctionConfig struct {
 	// Values contains map with object parameters to render
-	Values map[string]interface{} `json:"values,omitempty"`
+	Values map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
 	// Template field is used to specify actual go-template which is going
 	// to be used to render the object defined in Spec field
-	Template string `json:"template,omitempty"`
+	Template string `json:"template,omitempty" yaml:"template,omitempty"`
+	// Remove all documents before adding the generated one
+	CleanPipeline bool `json:"cleanPipeline,omitempty" yaml:"cleanPipeline,omitempty"`
 }
 
 type Function struct {
@@ -44,15 +46,19 @@ func (f *Function) Exec(items []*yaml.RNode) ([]*yaml.RNode, error) {
 	}
 
 	// Convert string to Rnodes
+	pb := kio.PackageBuffer{}
 	p := kio.Pipeline{
 		Inputs:  []kio.Reader{&kio.ByteReader{Reader: bytes.NewBufferString(out.String())}},
-		Outputs: []kio.Writer{&kio.PackageBuffer{}},
+		Outputs: []kio.Writer{&pb},
 	}
 	err = p.Execute()
 	if err != nil {
 		return nil, err
 	}
-	return append(items, p.Outputs[0].(*kio.PackageBuffer).Nodes...), nil
+	if f.Config.CleanPipeline {
+		return pb.Nodes, nil
+	}
+	return append(items, pb.Nodes...), nil
 }
 
 // Render input yaml as output yaml
