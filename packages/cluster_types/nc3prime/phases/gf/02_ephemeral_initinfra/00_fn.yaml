@@ -1,3 +1,21 @@
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: ephemeral-initinfra-docs-inventory
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/templater-default:v0.0.1
+cleanPipeline: true
+template: |
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: inventory-initinfra
+    namespace: default
+    labels:
+      cli-utils.sigs.k8s.io/inventory-id: a6ec3136-30a8-4bd5-a2d7-ccde1433f111
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -17,21 +35,6 @@ data:
   '--enable_alpha_plugins': '--enable_alpha_plugins'
   '--reorder': none
 ---
-apiVersion: v1alpha1
-kind: Grep
-metadata:
-  annotations:
-    config.kubernetes.io/function: |
-      container:
-        image: quay.io/aodinokov/grep:v0.0.1
-data:
-  flt: |
-    filters:
-    - path:
-      - kind
-      value: Kptfile
-      invertMatch: true
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -47,7 +50,4 @@ metadata:
     config.kubernetes.io/local-config: 'true'
 data:
   cmd: apply
-  inventoryObjectName: inventory-initinfra
-  inventoryObjectNamespace: default
-  inventoryId: a6ec3136-30a8-4bd5-a2d7-ccde1433f111
   reconcile-timeout: 15m
