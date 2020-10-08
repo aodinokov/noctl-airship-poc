@@ -1,0 +1,21 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  labels:
+  name: ironic-vars
+data:
+  PROVISIONING_IP: "192.168.10.100"
+  DHCP_RANGE: "192.168.10.200,192.168.10.250"
+  PROVISIONING_INTERFACE: "pxe"
+  HTTP: "80"
+  DEPLOY_KERNEL_PATH: "/images/tinyipa-stable-ussuri.vmlinuz"
+  DEPLOY_RAMDISK_PATH: "/images/tinyipa-stable-ussuri.gz"
+  FAST_TRACK: "false"
+  API_WORKERS: "4"
+  AUTOMATED_CLEAN: "true"
+  IRONIC_VOLUME_CAPACITY: "10Gi"
+  IRONIC_STORAGE_CLASS_NAME: "default"
+  IRONIC_HOST_PATH: "/opt/metal3-dev-env/ironic/"
+  IPA_RAMDISK: "https://tarballs.opendev.org/openstack/ironic-python-agent/tinyipa/files/tinyipa-stable-ussuri.gz"
+  IPA_KERNEL: "https://tarballs.opendev.org/openstack/ironic-python-agent/tinyipa/files/tinyipa-stable-ussuri.vmlinuz"

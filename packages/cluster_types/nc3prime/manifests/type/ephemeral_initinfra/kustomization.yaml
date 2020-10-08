@@ -1,3 +1,13 @@
 resources:
 - https://docs.projectcalico.org/archive/v3.15/manifests/tigera-operator.yaml
 - ../../site/config/calico
+- ../functions/baremetal-operator
+- ../versions/
+
+# TODO: it's site specific! FIXIT
+patchesStrategicMerge:
+- patch_bmo_config.yaml
+
+transformers:
+- ../functions/baremetal-operator/replacements
+- ../versions/cleanup
