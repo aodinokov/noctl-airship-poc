@@ -1,6 +1,0 @@
-apiVersion: v1
-description: Kustomize transformer dummy helm chart
-name: helmTransformerChart
-version: 0.1.0
-maintainers:
-  - name: Authors of kustomize transformer dummy helm chart
