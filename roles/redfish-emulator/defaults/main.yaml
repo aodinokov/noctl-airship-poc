@@ -1,3 +1,0 @@
-redfish_action: install
-redfish_emulator_bind_ip: 127.0.0.1
-redfish_emulator_bind_port: 8000

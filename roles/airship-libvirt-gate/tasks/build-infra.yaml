@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 - name: verify that gate flavor is defined
   assert:
     that:
@@ -39,6 +51,7 @@
       size: "{{ chosen_flavor.ephemeral_disk_size }}"
       pool: "{{ airship_gate_names.pool }}"
     volume_action: create
+
 - name: Create target volumes
   include_role:
     name: libvirt-volume
@@ -58,18 +71,27 @@
     name: libvirt-domain
   vars:
     libvirt_domain:
+      boot_mode: "{{ chosen_flavor.target_vm_cfg[vm_index|int - 1].boot_mode | default('UEFI') }}"
+      enable_vnc: true
+      console_log_enabled: true
       state: shutdown
       name: "{{ airship_gate_names.target_vm_prefix }}-{{ vm_index }}"
       memory_mb: "{{ chosen_flavor.target_vm_memory_mb }}"
       vcpus: "{{ chosen_flavor.target_vm_vcpus }}"
+      controllers:
+        - "sata"
       volumes:
         - name: "{{ airship_gate_names.target_volume_prefix }}-{{ vm_index }}"
           device: "disk"
+          target: sda
+          bus: sata
           format: "{{ chosen_flavor.disk_format }}"
           pool: "{{ airship_gate_names.pool }}"
       interfaces:
         - network: "{{ airship_gate_names.nat_network }}"
+          mac: "{{ chosen_flavor.target_vm_cfg[vm_index|int - 1].nat_mac | default('') }}"
         - network: "{{ airship_gate_names.provision_network }}"
+          mac: "{{ chosen_flavor.target_vm_cfg[vm_index|int - 1].provision_mac | default('') }}"
   loop_control:
     loop_var: vm_index
   with_sequence: "start=1 end={{ chosen_flavor.target_vms_count }}"
@@ -79,6 +101,7 @@
     name: libvirt-domain
   vars:
     libvirt_domain:
+      boot_mode: "{{ chosen_flavor.ephemeral_vm_cfg[0].boot_mode | default('UEFI') }}"
       enable_vnc: true
       console_log_enabled: true
       state: shutdown
@@ -92,25 +115,83 @@
           pool: "{{ airship_gate_names.pool }}"
       interfaces:
         - network: "{{ airship_gate_names.nat_network }}"
+          mac: "{{ chosen_flavor.ephemeral_vm_cfg[0].nat_mac | default('') }}"
         - network: "{{ airship_gate_names.provision_network }}"
+          mac: "{{ chosen_flavor.ephemeral_vm_cfg[0].provision_mac | default('') }}"
 
-- name: install apache2 reverse proxy
+- name: Add noauth sushy-emulator to apache
   include_role:
-    name: reverse-proxy
+    name: apache-wsgi-sushy-emulator
   vars:
-    reverse_proxy_action: "install"
-    reverse_proxy_hostname: "{{ airship_gate_redfish.hostname }}"
-    reverse_proxy_username: "{{ airship_gate_redfish.username }}"
-    reverse_proxy_password: "{{ airship_gate_redfish.password }}"
-    reverse_proxy_frontend_ip: "{{ airship_gate_redfish.bind_address }}"
-    reverse_proxy_frontend_port: "{{ airship_gate_redfish.secure_port }}"
-    reverse_proxy_backend_ip: "{{ airship_gate_redfish.bind_address }}"
-    reverse_proxy_backend_port: "{{ airship_gate_redfish.port }}"
+    sushy_emulator_frontend_name: airship_gate_redfish_noauth
+    sushy_emulator_frontend_servername: "{{ airship_gate_redfish_noauth.servername }}"
+    sushy_emulator_frontend_ip: "{{ airship_gate_redfish_noauth.ip }}"
+    sushy_emulator_frontend_http_port:  "{{ airship_gate_redfish_noauth.http_port }}"
 
-- name: install and start redfish emulator
+- name: Add auth sushy-emulator to apache
   include_role:
-    name: redfish-emulator
+    name: apache-wsgi-sushy-emulator
   vars:
-    redfish_action: "install"
-    redfish_emulator_bind_ip: "{{ airship_gate_redfish.bind_address }}"
-    redfish_emulator_bind_port: "{{ airship_gate_redfish.port }}"
+    sushy_emulator_frontend_name: airship_gate_redfish_auth
+    sushy_emulator_frontend_servername: "{{ airship_gate_redfish_auth.servername }}"
+    sushy_emulator_frontend_ip: "{{ airship_gate_redfish_auth.ip }}"
+    sushy_emulator_frontend_https_port: "{{ airship_gate_redfish_auth.https_port }}"
+    sushy_emulator_frontend_user: "{{ airship_gate_redfish_auth.user }}"
+
+- name: Add file-exchanger to apache
+  include_role:
+    name: apache-file-exchanger
+  vars:
+    file_exchanger_name: airship_gate_file_exchanger
+    file_exchanger_ip: "{{ airship_gate_file_exchanger.ip }}"
+    file_exchanger_http_port: "{{ airship_gate_file_exchanger.http_port | default(0) }}"
+    file_exchanger_https_port: "{{ airship_gate_file_exchanger.https_port | default(0) }}"
+    file_exchanger_path: "{{ airship_gate_file_exchanger.path }}"
+    file_exchanger_user: "{{ airship_gate_file_exchanger.user | default(None)}}"
+    file_exchanger_group: "{{ airship_gate_file_exchanger.group | default(None) }}"
+    file_exchanger_rbac: "{{ airship_gate_file_exchanger.rbac | default(None) }}"
+
+- name: Create worker volumes
+  include_role:
+    name: libvirt-volume
+  vars:
+    libvirt_volume:
+      name: "{{ airship_gate_names.worker_volume_prefix }}-{{ vm_index }}"
+      size: "{{ chosen_flavor.worker_disk_size }}"
+      pool: "{{ airship_gate_names.pool }}"
+      format: "{{ chosen_flavor.disk_format }}"
+    volume_action: create
+  loop_control:
+    loop_var: vm_index
+  with_sequence: "start=1 end={{ chosen_flavor.worker_vms_count }}"
+
+- name: Create worker domains
+  include_role:
+    name: libvirt-domain
+  vars:
+    libvirt_domain:
+      boot_mode: "{{ chosen_flavor.worker_vm_cfg[vm_index|int - 1].boot_mode | default('UEFI') }}"
+      enable_vnc: true
+      console_log_enabled: true
+      state: shutdown
+      name: "{{ airship_gate_names.worker_vm_prefix }}-{{ vm_index }}"
+      memory_mb: "{{ chosen_flavor.worker_vm_memory_mb }}"
+      vcpus: "{{ chosen_flavor.worker_vm_vcpus }}"
+      controllers:
+        - "sata"
+      volumes:
+        - name: "{{ airship_gate_names.worker_volume_prefix }}-{{ vm_index }}"
+          device: "disk"
+          target: sda
+          bus: sata
+          format: "{{ chosen_flavor.disk_format }}"
+          pool: "{{ airship_gate_names.pool }}"
+      interfaces:
+        - network: "{{ airship_gate_names.nat_network }}"
+          mac: "{{ chosen_flavor.worker_vm_cfg[vm_index|int - 1].nat_mac | default('') }}"
+        - network: "{{ airship_gate_names.provision_network }}"
+          mac: "{{ chosen_flavor.worker_vm_cfg[vm_index|int - 1].provision_mac | default('') }}"
+  loop_control:
+    loop_var: vm_index
+  with_sequence: "start=1 end={{ chosen_flavor.worker_vms_count }}"
+

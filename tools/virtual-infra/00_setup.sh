@@ -32,10 +32,16 @@ mkdir -p "$TMP_DIR"
 envsubst <"${AIRSHIPCTL_WS}/tools/gate/config_template.yaml" > "$PLAYBOOK_CONFIG"
 
 # use new version of ansible, Ubuntu has old one
-sudo apt install software-properties-common
-sudo apt-add-repository --yes --update ppa:ansible/ansible
-sudo apt-get -y update
-sudo apt-get -y --no-install-recommends install docker.io ansible make python-passlib
+sudo apt update
+sudo DEBIAN_FRONTEND=noninteractive apt -y install software-properties-common python3-pip
+sudo DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends install docker.io make
 
-echo "primary ansible_host=localhost ansible_connection=local" > "$ANSIBLE_HOSTS"
+ANSIBLE_PACKAGES="ansible netaddr"
+if [[ -z "${http_proxy}" ]]; then
+  sudo pip3 install $ANSIBLE_PACKAGES
+else
+  sudo pip3 --proxy "${http_proxy}" install $ANSIBLE_PACKAGES
+fi
+
+echo "primary ansible_host=localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3" > "$ANSIBLE_HOSTS"
 printf "[defaults]\nroles_path = %s/roles\n" "$AIRSHIPCTL_WS" > "$ANSIBLE_CFG"

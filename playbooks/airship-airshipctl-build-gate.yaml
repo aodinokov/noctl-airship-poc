@@ -15,13 +15,64 @@
     LIBVIRT_DEFAULT_URI: qemu:///system
 
   tasks:
-    - name: read ip map
+    - name: set default vars
+      set_fact:
+        var_files_default:
+          - airship-ipam.yaml
+          - test-config.yaml
+
+    - name: read test variables
       include_vars:
-        file: vars/airship-ipam.yaml
+        file: "vars/{{ var_file }}"
+      with_items: "{{ var_files | default(var_files_default) }}"
+      loop_control:
+        loop_var: var_file
 
     - name: docker install
       include_role:
         name: docker-install
+
+    - name: install kustomize
+      include_role:
+        name: install-kustomize
+
+    # Installs kustomize plugin functionality needed for rendering below
+    - name: install airshipctl
+      shell: |
+        cd {{ local_src_dir | default(zuul.project.src_dir) }}
+        ./tools/deployment/21_systemwide_executable.sh
+
+    - name: make sure serve directory exists
+      file:
+        dest: "{{ serve_dir }}"
+        state: directory
+        mode: "0755"
+        owner: "{{ ansible_user }}"
+      become: yes
+
+    - name: get BareMetalHost from model
+      block:
+        - name: ensure tempdir for airshipctl does not exist
+          file:
+            path: "{{ remote_work_dir }}"
+            state: absent
+          when: remote_work_dir is defined
+        - name: clone document model
+          command: git clone -q {{ airship_config_primary_repo_url }} {{ remote_work_dir }}
+          when: remote_work_dir is defined
+
+    - name: get VM config(MACs and bootMode) from BareMetalHost objects
+      include_tasks:
+        file: get-vm-config.yaml
+      vars:
+        name: "{{ roleinputvar.name }}"
+        path: "{{ roleinputvar.path }}"
+      loop:
+        - { name: 'target', path: 'ephemeral/controlplane' }
+        - { name: 'ephemeral', path: 'ephemeral/bootstrap' }
+        - { name: 'worker', path: 'target/workers' }
+      loop_control:
+        loop_var: roleinputvar
 
     - name: deploy-gate
       include_role:
@@ -36,28 +87,41 @@
             name: "default"
         airship_gate_flavors:
           medium:
-            target_vm_memory_mb: 1024
-            target_vm_vcpus: 1
+            disk_format: qcow2
+            ephemeral_disk_size: 20G
+            ephemeral_vm_cfg: "{{ ephemeral_vm_cfg }}"
             ephemeral_vm_memory_mb: 6124
             ephemeral_vm_vcpus: 4
-            ephemeral_disk_size: 20G
             target_disk_size: 10G
-            disk_format: qcow2
+            target_vm_cfg: "{{ target_vm_cfg }}"
+            target_vm_memory_mb: 4096
+            target_vm_vcpus: 2
             target_vms_count: 1
-
-    - name: make sure serve directory exists
-      file:
-        dest: "{{ serve_dir }}"
-        state: directory
-        mode: "0755"
-        owner: "{{ ansible_user }}"
-      become: true
-
-    - name: serve iso directory
-      include_role:
-        name: http-fileserver
-      vars:
-        http_fileserver_serve_dir: "{{ serve_dir }}"
-        http_fileserver_serve_port: "{{ serve_port }}"
-
-
+            worker_disk_size: 10G
+            worker_vm_cfg: "{{ worker_vm_cfg }}"
+            worker_vm_memory_mb: 1024
+            worker_vm_vcpus: 1
+            worker_vms_count: 1
+        airship_gate_file_exchanger:
+          servername: "localhost"
+          ip:
+          - "127.0.0.1"
+          - "::1"
+          - "{{ airship_gate_ipam.provision_network.bridge_ip }}"
+          http_port: "{{ serve_port }}"
+          path: "{{ serve_dir }}"
+          user:
+          - username: "username"
+            password: "password"
+          group:
+          - name: writers
+            member:
+            - username
+          rbac:
+            policies:
+            - role:
+              - PUT
+              group:
+              - writers
+            default:
+              all: granted

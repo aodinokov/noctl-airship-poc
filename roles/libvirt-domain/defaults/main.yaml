@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 ---
 
 # The default directory in which to store VM console logs, if a VM-specific log
@@ -94,6 +106,9 @@ libvirt_domain_template_default: |
       <on_crash>destroy</on_crash>
       <os>
       <type arch='{{ libvirt_vm_arch }}'{% if machine is not none %} machine='{{ machine }}'{% endif %}>hvm</type>
+      {% if libvirt_domain.boot_mode is defined and libvirt_domain.boot_mode == 'UEFI' %}
+      <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
+      {% endif %}
       <bootmenu enable='no'/>
       <boot dev='hd'/>
       <boot dev='cdrom'/>
@@ -123,9 +138,14 @@ libvirt_domain_template_default: |
       {% if volume.target is undefined %}
       <target dev='vd{{ 'abcdefghijklmnopqrstuvwxyz'[loop.index - 1] }}'/>
       {% else %}
-      <target dev='{{ volume.target }}' />
+      <target dev='{{ volume.target }}' bus='{{ volume.bus if volume.bus is defined else 'virtio' }}'/>
       {% endif %}
       </disk>
+      {% endfor %}
+      {% for controller in controllers | default([]) %}
+      <controller type='{{ controller }}'>
+      <address type='pci'/>
+      </controller>
       {% endfor %}
       {% for interface in interfaces %}
       {% if interface.type is defined and interface.type == 'direct' %}
@@ -138,7 +158,7 @@ libvirt_domain_template_default: |
       <interface type='network'>
       <source network='{{ interface.network }}'/>
       {% endif %}
-      {% if interface.mac is defined %}
+      {% if interface.mac | default("") != "" %}
       <mac address='{{ interface.mac }}'/>
       {% endif %}
       {# if the network configuration is invalid this can still appear in the xml #}

@@ -1,10 +1,31 @@
-airship_gate_redfish:
-  hostname: "redfish-emulator"
-  username: "username"
-  password: "password"
-  secure_port: 443
-  port: 8000
-  bind_address: "127.0.0.1"
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+airship_gate_redfish_noauth:
+  servername: "localhost"
+  ip:
+  - "127.0.0.1"
+  - "::1"
+  http_port: 8000
+
+airship_gate_redfish_auth:
+  servername: "localhost"
+  ip:
+  - "127.0.0.1"
+  - "::1"
+  https_port: 8443
+  user:
+  - username: "username"
+    password: "password"
 
 airship_gate_names:
   provision_network: air_prov
@@ -17,3 +38,5 @@ airship_gate_names:
   target_volume_prefix: "vol_target"
   ephemeral_volume: "vol_ephemeral"
   pool: airship
+  worker_vm_prefix: "air-worker"
+  worker_volume_prefix: "vol_worker"
