@@ -1,6 +1,6 @@
 # noctl-airship-poc
-noctl PoC for Airship
-all is needed for operator - kpt
+noctl PoC for Airship.
+All is needed for operator - kpt
 
 ## How to run
 
