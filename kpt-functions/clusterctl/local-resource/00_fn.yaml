@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ephemeral-clusterctl-init
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/clusterctl:v0.0.1
+        network:
+          required: true
+        envs:
+        - API_ENDPOINT_HOST=10.23.25.102
+        - API_ENDPOINT_PORT=6443
+        - CTLPLANE_KUBEADM_EXTRA_CONFIG=
+        - IMAGE_CHECKSUM=2c890254ecbd4e6b4931f864ef72b337
+        - IMAGE_URL=https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+        - POD_CIDR=192.168.0.0/18
+        - SERVICE_CIDR=10.96.0.0/12
+        - WORKERS_KUBEADM_EXTRA_CONFIG=
+    config.kubernetes.io/local-config: 'true'
+data:
+  stdoutToPipeline: 'true'
+  cmd: config
+  'cluster': mgmt
+  '--kubernetes-version': v1.18.6
+  '--control-plane-machine-count': 1 
+  '--worker-machine-count': 1
+  '--kubeconfig': /cache/ephemeral_build_iso/adminConfig.yaml

@@ -1,0 +1,36 @@
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: ephemeral-initinfra-docs-inventory
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/templater-default:v0.0.1
+cleanPipeline: true
+template: |
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: inventory-clusterctlinit
+    namespace: default
+    labels:
+      cli-utils.sigs.k8s.io/inventory-id: a6ec3136-30a8-4bd5-a2d7-ccde1433f112
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ephemeral-clusterctl-init
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/clusterctl:v0.0.1
+        network:
+          required: true
+    config.kubernetes.io/local-config: 'true'
+data:
+  cmd: init
+  '--kubeconfig': /cache/ephemeral_build_iso/adminConfig.yaml 
+  '--core': cluster-api:v0.3.7
+  '--bootstrap': kubeadm:v0.3.7
+  '--infrastructure': metal3:v0.3.2
+  '--control-plane': kubeadm:v0.3.7
