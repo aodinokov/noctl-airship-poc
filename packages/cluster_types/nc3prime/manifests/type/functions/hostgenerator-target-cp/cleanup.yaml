@@ -1,0 +1,16 @@
+apiVersion: builtin
+kind: PatchStrategicMergeTransformer
+metadata:
+  name: notImportantHere-delete
+patches: |-
+  apiVersion: airshipit.org/v1alpha1
+  kind: VariableCatalogue
+  metadata:
+    name: common-networking-catalogue
+  $patch: delete
+  ---
+  apiVersion: airshipit.org/v1alpha1
+  kind: VariableCatalogue
+  metadata:
+    name: host-catalogue
+  $patch: delete

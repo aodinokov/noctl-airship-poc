@@ -17,9 +17,10 @@ cd tools/gate/
 10_build_gate.sh
 ```
 
-If/When you have airshipctl-based gating lab configured, need to make 2 adjustments:
+If/When you have airshipctl-based gating lab configured, need to make 3 adjustments:
 
-* make sure that MAC addresses of the air-ephemeral interfaces are the same as listed [here](https://github.com/aodinokov/noctl-airship-poc/blob/master/packages/clusters/exm01a/manifests/site/config/hosts/hosts.yaml#L39)
+* make sure that MAC addresses of the air-ephemeral and air-target-1 interfaces are the same as listed [here](https://github.com/aodinokov/noctl-airship-poc/blob/master/packages/clusters/exm01a/manifests/site/config/hosts/hosts.yaml#L39)
+* make sure that VMs have more than 1 CPUs
 * Execute the following commands to make sure that VMs are accessible from docker containers:
 
 ``` sh

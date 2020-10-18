@@ -1,0 +1,65 @@
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+metadata:
+  name: cluster-controlplane
+spec:
+  replicas: 1
+  version: v1.18.6
+  infrastructureTemplate:
+    kind: Metal3MachineTemplate
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    name: cluster-controlplane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        timeoutForControlPlane: 1000s
+    preKubeadmCommands:
+      - echo 'root:r00tme' | chpasswd
+      - echo 'ubuntu:r00tme' | chpasswd
+      - |
+        cat <<EOF | tee /etc/sysctl.d/k8s.conf
+        net.bridge.bridge-nf-call-ip6tables = 1
+        net.bridge.bridge-nf-call-iptables = 1
+        EOF
+      - sysctl --system
+      - swapoff -a
+      - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+      - curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+      - echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee -a /etc/apt/sources.list
+        # Replace xenial with focal or $(lsb_release -cs) once available
+      - echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" | tee -a /etc/apt/sources.list
+      - apt update
+      - apt install -y
+          docker-ce="$(apt-cache policy docker-ce | grep 19.03.12 | sort | head -n 1 | tr -s " " | cut -d ' ' -f 2)"
+          docker-ce-cli="$(apt-cache policy docker-ce-cli | grep 19.03.12 | sort | head -n 1 | tr -s " " | cut -d ' ' -f 2)"
+          containerd.io
+      - apt install -y kubelet=1.18.6-00 kubeadm=1.18.6-00 kubectl=1.18.6-00
+      - apt-mark hold docker-ce docker-ce-cli containerd.io kubelet kubeadm kubectl
+    initConfiguration:
+      nodeRegistration:
+        name: '{{ ds.meta_data.local_hostname }}'
+        kubeletExtraArgs:
+          node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+    joinConfiguration:
+      controlPlane: {}
+      nodeRegistration:
+        name: '{{ ds.meta_data.local_hostname }}'
+        kubeletExtraArgs:
+          node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: Metal3MachineTemplate
+metadata:
+  name: cluster-controlplane
+spec:
+  template:
+    spec:
+      image:
+        # NOTE (dukov) this should be overridden on lower levels
+        #url: https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img
+        #checksum: 2c890254ecbd4e6b4931f864ef72b337
+        url: http://10.23.24.1:8099/target-image.qcow2
+        checksum: http://10.23.24.1:8099/target-image.qcow2.md5sum
+      hostSelector:
+        matchLabels:
+          airshipit.org/k8s-role: controlplane-host

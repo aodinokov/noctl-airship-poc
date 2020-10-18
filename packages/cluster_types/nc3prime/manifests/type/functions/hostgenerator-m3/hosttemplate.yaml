@@ -24,6 +24,13 @@ values:
         sriovEnabled: false
         virtualizationDisabled: false
         simultaneousMultithreadingDisabled: false
+    libvirt:
+      firmware:
+        sriovEnabled: false
+        virtualizationDisabled: false
+        simultaneousMultithreadingDisabled: false
+      rootDeviceHints:
+        deviceName: /dev/vda
 
 template: |
   {{- $envAll := . }}
@@ -50,8 +57,7 @@ template: |
     bmc:
       address: {{ $host.bmcAddress }}
       credentialsName: {{ $resourceName }}-bmc-secret
-    firmware:
-  {{ toYaml $hardwareProfile.firmware | indent 4 }}
+  {{ toYaml $hardwareProfile | indent 2 }}
   ---
   apiVersion: v1
   kind: Secret

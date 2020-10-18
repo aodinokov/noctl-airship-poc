@@ -1,0 +1,14 @@
+secretGenerator:
+  - name: get-target-kubeconfig-secret
+    options:
+      disableNameSuffixHash: true
+    literals:
+    - |
+        script.sh=#!/bin/sh
+        KUBECONFIG=/cache/ephemeral_build_iso/adminConfig.yaml
+        KUBECONFIG_EPHEMERAL_CONTEXT=kubernetes-admin@kubernetes
+        mkdir -p mkdir -p /cache/target_kubeconfig/
+        kubectl --kubeconfig $KUBECONFIG --context $KUBECONFIG_EPHEMERAL_CONTEXT --namespace=default get secret target-cluster-kubeconfig \
+          -o jsonpath={.data.value} | base64 -d \
+          > /cache/target_kubeconfig/adminConfig.yaml
+

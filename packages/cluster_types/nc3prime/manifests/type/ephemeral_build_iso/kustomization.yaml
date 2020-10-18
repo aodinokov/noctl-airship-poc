@@ -31,6 +31,12 @@ secretGenerator:
         cp /tmp/admin-config/adminConfig /cache/ephemeral_build_iso/adminConfig.yaml
         "${BASEDIR}/build.sh" >&2
         curl "${PUT_SERVER}" -u "${PUT_USERNAME}":"${PUT_PASSWORD}" --upload-file /cache/ephemeral_build_iso/ubuntu-focal.iso >&2
+        # emulating image-builder
+        TARGET_IMAGE_URL="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img"
+        curl -sSLo /tmp/target-image.qcow2 ${TARGET_IMAGE_URL}
+        md5sum /tmp/target-image.qcow2 | cut -d ' ' -f 1 > /tmp/target-image.qcow2.md5sum
+        curl "${PUT_SERVER}" -u "${PUT_USERNAME}":"${PUT_PASSWORD}" --upload-file /tmp/target-image.qcow2 >&2
+        curl "${PUT_SERVER}" -u "${PUT_USERNAME}":"${PUT_PASSWORD}" --upload-file /tmp/target-image.qcow2.md5sum >&2
   - name: ephemeral-admin-config
     options:
       disableNameSuffixHash: true

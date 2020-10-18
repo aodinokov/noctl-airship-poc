@@ -1,0 +1,5 @@
+generators:
+- ../../functions/hostgenerator-target-cp
+
+commonLabels:
+  airshipit.org/k8s-role: controlplane-host

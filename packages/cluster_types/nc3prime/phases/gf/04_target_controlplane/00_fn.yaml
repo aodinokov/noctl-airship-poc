@@ -1,0 +1,53 @@
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: target-cp-docs-inventory
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/templater-default:v0.0.1
+cleanPipeline: true
+template: |
+  apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: inventory-target-cp
+    namespace: default
+    labels:
+      cli-utils.sigs.k8s.io/inventory-id: a6ec3136-30a8-4bd5-a2d7-ccde1433f113
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: target-cp-docs
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/kustomize_build_dind:0.0.1 #gcr.io/kpt-functions/kustomize-build:stable
+        user: "root"
+        network:
+          required: true
+        envs:
+        - KUSTOMIZE_PLUGIN_HOME=/cluster_root/manifests/type
+    config.kubernetes.io/local-config: 'true'
+data:
+  path: /cluster_root/manifests/site/target_controlplane
+  '--enable_alpha_plugins': '--enable_alpha_plugins'
+  '--reorder': none
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: target-cp-apply
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/live:v0.0.1
+        network:
+          required: true
+        envs:
+        - KUBECONFIG=/cache/ephemeral_build_iso/adminConfig.yaml
+    config.kubernetes.io/local-config: 'true'
+data:
+  cmd: apply
+  reconcile-timeout: 35m

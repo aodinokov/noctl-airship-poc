@@ -1,0 +1,11 @@
+secretGenerator:
+  - name: check-ehpemeral-readiness-secret
+    options:
+      disableNameSuffixHash: true
+    literals:
+    - |
+        script.sh=#!/bin/sh
+        KUBECONFIG=/cache/ephemeral_build_iso/adminConfig.yaml
+        KUBECONFIG_EPHEMERAL_CONTEXT=kubernetes-admin@kubernetes
+        kubectl --kubeconfig $KUBECONFIG --context $KUBECONFIG_EPHEMERAL_CONTEXT wait --all-namespaces --for=condition=Ready pods --all --timeout=600s >&2
+
