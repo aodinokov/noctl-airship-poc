@@ -1,0 +1,109 @@
+/home/ubuntu/noctl-airship-poc/packages/test_starlark/set_toleration.star
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    config.kubernetes.io/path: deployment_ironic.yaml
+  name: ironic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ironic
+  template:
+    metadata:
+      labels:
+        name: ironic
+    spec:
+      containers:
+      - command:
+        - /bin/rundnsmasq
+        image: quay.io/metal3-io/ironic:latest
+        imagePullPolicy: Always
+        name: dnsmasq
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /shared
+          name: ironic-storage
+        - mountPath: /bin/rundnsmasq
+          name: ironic-entrypoints
+          subPath: dnsmasq-entrypoint
+      - command:
+        - /bin/runhttpd
+        image: quay.io/metal3-io/ironic:latest
+        imagePullPolicy: Always
+        name: httpd
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+        volumeMounts:
+        - mountPath: /shared
+          name: ironic-storage
+        - mountPath: /bin/runhttpd
+          name: ironic-entrypoints
+          subPath: httpd-entrypoint
+      - command:
+        - /bin/runironic
+        image: quay.io/metal3-io/ironic:latest
+        imagePullPolicy: Always
+        name: ironic
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /shared
+          name: ironic-storage
+        - mountPath: /bin/runironic
+          name: ironic-entrypoints
+          subPath: ironic-entrypoint
+      - command:
+        - /bin/runironic-inspector
+        image: quay.io/metal3-io/ironic-inspector:latest
+        imagePullPolicy: Always
+        name: ironic-inspector
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /shared
+          name: ironic-storage
+        - mountPath: /bin/runironic-inspector
+          name: ironic-entrypoints
+          subPath: inspector-entrypoint
+      hostNetwork: true
+      initContainers:
+      - command:
+        - /bin/init-bootstrap
+        image: centos
+        imagePullPolicy: Always
+        name: init-bootstrap
+        volumeMounts:
+        - mountPath: /shared
+          name: ironic-storage
+        - mountPath: /bin/init-bootstrap
+          name: ironic-entrypoints
+          subPath: init-bootstrap
+        - mountPath: /cfg
+          name: ironic-config-files
+        - mountPath: /ironic-vars
+          name: ironic-vars
+      nodeSelector: {}
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      volumes:
+      - name: ironic-storage
+        persistentVolumeClaim:
+          claimName: ironic-pv-claim
+      - configMap:
+          defaultMode: 420
+          name: ironic-config-files
+        name: ironic-config-files
+      - configMap:
+          defaultMode: 448
+          name: ironic-entrypoints
+        name: ironic-entrypoints
+      - configMap:
+          defaultMode: 420
+          name: ironic-vars
+        name: ironic-vars

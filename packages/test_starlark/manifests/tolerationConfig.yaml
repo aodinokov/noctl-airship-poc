@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ExampleKind
+metadata:
+  name: not-important-here
+  annotations:
+    config.kubernetes.io/function: |
+      starlark: {path: set_toleration.star, name: set_toleration}
+spec:
+  filter:
+    name: ironic
+  tolerations:
+  - key: node-role.kubernetes.io/master
+    effect: NoSchedule
