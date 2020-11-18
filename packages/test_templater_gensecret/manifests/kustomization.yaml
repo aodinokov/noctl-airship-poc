@@ -1,0 +1,6 @@
+generators:
+- generateSecrets.yaml
+
+transformers:
+- encryptSecrets.yaml
+- decryptSecrets.yaml
