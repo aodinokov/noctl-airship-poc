@@ -6,7 +6,7 @@ fi
 rm sops_functional_tests_key.asc
 wget https://raw.githubusercontent.com/mozilla/sops/master/pgp/sops_functional_tests_key.asc
 
-KUSTOMIZE_PLUGIN_HOME=$(pwd)/manifests SOPS_IMPORT_PGP=$(cat sops_functional_tests_key.asc) ./kustomize build --enable_alpha_plugins manifests/ > output.yaml
+KUSTOMIZE_PLUGIN_HOME=$(pwd)/manifests SOPS_IMPORT_PGP=$(cat sops_functional_tests_key.asc) SOPS_PGP_FP='FBC7B9E2A4F9289AC0C1D4843D16CEE4A27381B4' ./kustomize build --enable_alpha_plugins manifests/ > output.yaml
 
 [ -d test ] && rm -rf test
 mkdir test
