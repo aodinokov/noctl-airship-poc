@@ -1,0 +1,7 @@
+kind: Kustomization
+resources:
+- ../../type/type1/
+
+transformers:
+- secrets/
+- ../../type/type1/replacements/

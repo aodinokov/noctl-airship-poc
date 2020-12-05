@@ -1,0 +1,9 @@
+apiVersion: builtin
+kind: PatchStrategicMergeTransformer
+metadata:
+  name: notImportantHere-delete
+patches: |-
+  kind: VariableCatalogue
+  metadata:
+    name: type1-catalogue
+  $patch: delete

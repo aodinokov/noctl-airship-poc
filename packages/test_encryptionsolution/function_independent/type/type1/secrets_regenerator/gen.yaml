@@ -1,0 +1,25 @@
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: somename
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: quay.io/aodinokov/templater-default:v0.0.1
+values:
+template: |
+  {{- $ca := genCA "foo-ca" 365 -}}
+  {{- $cert := genSignedCert "foo.com" (list "10.0.0.1" "10.0.0.2") (list "bar.com" "bat.com") 365 $ca -}}
+  apiVersion: builtin
+  kind: PatchStrategicMergeTransformer
+  metadata:
+    name: smp
+    annotations:
+      config.kubernetes.io/index: '0'
+      config.kubernetes.io/path: 'patch_encrypted.yaml'
+  patches: |-
+    kind: VariableCatalogue
+    metadata:
+      name: type1-catalogue
+    crt: sitegen1cat-{{ $cert.Cert|b64enc }}
+    key: sitegen1cat-{{ $cert.Key|b64enc }}

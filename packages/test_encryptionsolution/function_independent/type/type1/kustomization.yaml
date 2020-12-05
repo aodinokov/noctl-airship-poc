@@ -1,0 +1,5 @@
+kind: Kustomization
+resources:
+- catalogue.yaml
+- ../../function/fn1/
+- ../../function/fn2/

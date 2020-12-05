@@ -1,0 +1,5 @@
+kind: Kustomization
+generators:
+- gen.yaml
+transformers:
+- encr.yaml

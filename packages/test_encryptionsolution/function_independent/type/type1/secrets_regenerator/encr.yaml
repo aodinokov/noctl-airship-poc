@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-config
+  annotations:
+    config.k8s.io/function: |
+      container:
+        image: quay.io/aodinokov/sops:v0.0.3
+        envs:
+        - SOPS_IMPORT_PGP
+        - SOPS_PGP_FP
+data:
+  cmd: encrypt
+  cmd-json-path-filter: '$[?(@.kind=="PatchStrategicMergeTransformer")]'
+  unencrypted-regex: '^(kind|apiVersion|group|metadata)$'

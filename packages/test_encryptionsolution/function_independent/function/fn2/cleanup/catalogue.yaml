@@ -1,0 +1,9 @@
+apiVersion: builtin
+kind: PatchStrategicMergeTransformer
+metadata:
+  name: fn2-delete
+patches: |-
+  kind: VariableCatalogue
+  metadata:
+    name: fn2-catalogue
+  $patch: delete

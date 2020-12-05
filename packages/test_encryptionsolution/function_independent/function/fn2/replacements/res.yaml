@@ -1,0 +1,29 @@
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: fn2-replacements
+  annotations:
+    config.kubernetes.io/function: |-
+      container:
+        image: quay.io/airshipit/replacement-transformer:latest
+replacements:
+- source:
+    objref:
+      kind: VariableCatalogue
+      name: fn2-catalogue
+    fieldref: "{.crt}"
+  target:
+    objref:
+      kind: Secret
+      name: fn2-secret
+    fieldrefs: ["{.data.tlscrt}"]
+- source:
+    objref:
+      kind: VariableCatalogue
+      name: fn2-catalogue
+    fieldref: "{.key}"
+  target:
+    objref:
+      kind: Secret
+      name: fn2-secret
+    fieldrefs: ["{.data.tlskey}"]

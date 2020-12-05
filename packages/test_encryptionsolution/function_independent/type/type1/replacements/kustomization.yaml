@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- fn1.yaml
+- fn2.yaml
+- ../../../function/fn1/replacements/
+- ../../../function/fn2/replacements/
+- ../../../function/fn1/cleanup/
+- ../../../function/fn2/cleanup/
+- ../cleanup/
