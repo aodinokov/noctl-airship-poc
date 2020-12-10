@@ -1,0 +1,3 @@
+generators:
+        #- inflate-helloworld.yaml
+- inflate-redis.yaml

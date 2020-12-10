@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-func-config
+  annotations:
+    config.kubernetes.io/function: |
+      container:
+        image: gcr.io/kpt-functions/helm-inflator
+        mounts:
+        - type: bind
+          src: helloworld-chart
+          dst: /source
+data:
+  name: chart
+  local-chart-path: /source
