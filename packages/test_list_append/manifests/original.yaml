@@ -1,0 +1,8 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myDeploy
+spec:
+  extraVolumes:
+  - field1: 0
+    field2: 0

@@ -1,0 +1,6 @@
+resources:
+- original.yaml
+
+transformers:
+- replacement_with_append/
+  

@@ -1,0 +1,40 @@
+apiVersion: airshipit.org/v1alpha1
+kind: Templater
+metadata:
+  name: appender-template
+  annotations:
+    config.kubernetes.io/function: |-
+      container:
+        image: quay.io/airshipit/templater:latest
+values:
+  target:
+    group: apps
+    version: v1
+    kind: Deployment
+    name: myDeploy
+  targetPath: "/spec/extraVolumes/"
+  range:
+    from: 1
+  data:
+  #- field1: 1
+  #  field2: 2
+  #- field1: 3
+  #  field2: 4
+template: |
+  {{- $envAll := . }}
+  apiVersion: builtin
+  kind: PatchJson6902Transformer
+  metadata:
+    name: json-{{ $envAll.target.name}}
+  target:
+  {{ toYaml $envAll.target|indent 2 }}
+  jsonOp: '[
+  {{- range $i, $v := $envAll.data }}
+  { "op": "add", "path": 
+    {{- printf "%s%d" $envAll.targetPath (add $i $envAll.range.from)|quote -}},
+   "value": {{- toJson $v -}}
+  }
+  {{- if not (eq $i (sub (len $envAll.data) 1)) -}}
+  ,
+  {{- end -}}
+  {{- end }} ]'

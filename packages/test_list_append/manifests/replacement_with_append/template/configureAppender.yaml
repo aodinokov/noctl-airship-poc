@@ -1,0 +1,17 @@
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: baremetal-operator-env-vars-replacements
+  annotations:
+    config.kubernetes.io/function: |-
+      container:
+        image: quay.io/airshipit/replacement-transformer:latest
+replacements:
+- source:
+    objref:
+      name: openstack-endpoint-catalogue
+    fieldref: data.array
+  target:
+    objref:
+      name: appender-template
+    fieldrefs: ["values.data"]
