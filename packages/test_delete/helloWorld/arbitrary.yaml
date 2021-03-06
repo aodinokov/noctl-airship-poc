@@ -7,3 +7,14 @@ metadata:
 data:
   altGreeting: "some data"
   enableRisky: "more data"
+---
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  name: openstack-endpoint-catalogue2
+  labels:
+    airshipit.org/deploy-k8s: "false"
+data:
+  altGreeting: "some data"
+  enableRisky: "more data"
+

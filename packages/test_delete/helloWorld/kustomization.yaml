@@ -9,3 +9,4 @@ resources:
 - configMap.yaml
 - arbitrary.yaml
 transformers:
+- arbitraryCleanup.yaml

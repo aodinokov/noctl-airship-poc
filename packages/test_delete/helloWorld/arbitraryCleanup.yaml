@@ -1,10 +1,13 @@
 apiVersion: builtin
-kind: PatchStrategicMergeTransformer
+kind: PatchTransformer
 metadata:
   name: notImportantHere-delete
-patches: |-
-  apiVersion: airshipit.org/v1alpha1
-  kind: VariableCatalogue
+target:
+ labelSelector: airshipit.org/deploy-k8s=false
+ #kind: VariableCatalogue
+patch: |
+  apiVersion: not-important
+  kind: not-important
   metadata:
-    name: openstack-endpoint-catalogue
+    name: not-important
   $patch: delete
