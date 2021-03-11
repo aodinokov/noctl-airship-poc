@@ -1,0 +1,8 @@
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  labels:
+    airshipit.org/deploy-k8s: "false"
+  name: generated-secrets
+spec:
+  fld1: val1

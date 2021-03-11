@@ -1,0 +1,6 @@
+resources:
+- catalogue.yaml
+
+transformers:
+- generate_with_catalogue_values.yaml
+- cleanup.yaml

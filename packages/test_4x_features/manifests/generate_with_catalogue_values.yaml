@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notImportantHere
+  annotations:
+    config.kubernetes.io/function: |
+      container: 
+        image: quay.io/aodinokov/templater-transformer
+data:
+  generated_secrets_flt: |
+    kind: GrepFilter
+    path: ['metadata', 'name']
+    value: generated-secrets
+  fld_get: |
+    kind: PathGetter
+    path: %s
+  entrypoint: |
+    {{- $generated_secrets := KPipe .Items (list (KFilter .Data.generated_secrets_flt)) -}}
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: notImportantHere
+    data:
+      somedata: x
+      somedata2: {{ YValue (YPipe (index $generated_secrets 0) (list (YFilter (printf .Data.fld_get "['spec', 'fld1']") ))) }}
