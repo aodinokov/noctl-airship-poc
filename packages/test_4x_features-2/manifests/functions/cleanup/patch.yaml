@@ -1,0 +1,12 @@
+apiVersion: builtin
+kind: PatchTransformer
+metadata:
+  name: notImportantHere-delete
+target:
+ labelSelector: airshipit.org/deploy-k8s=false
+patch: |
+  apiVersion: not-important
+  kind: not-important
+  metadata:
+    name: not-important
+  $patch: delete

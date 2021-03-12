@@ -1,0 +1,26 @@
+apiVersion: airshipit.org/v1alpha1
+kind: ReplacementTransformer
+metadata:
+  name: generated-secrets-replacements
+  annotations:
+    config.kubernetes.io/function: |-
+      container:
+        image: quay.io/airshipit/replacement-transformer:latest
+replacements:
+- source:
+    objref:
+      name: type1-catalogue
+    fieldref: "{.data.allFnParam1}"
+  target:
+    objref:
+      name: fn1-catalogue
+    fieldrefs: ["{.data.param1}"]
+- source:
+    objref:
+      name: type1-catalogue
+    fieldref: "{.data.allFnParam1}"
+  target:
+    objref:
+      name: fn2-catalogue
+    fieldrefs: ["{.data.param1}"]
+
