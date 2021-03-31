@@ -17,6 +17,24 @@ data:
   entrypoint: |
     {{- $catalogue_x := KPipe .Items (list (KFilter .Data.generated_secrets_flt)) -}}
     {{- $catalogue := index $catalogue_x 0 -}}
+    {{/* would like to have builtin/resource instead of using krm */}}
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: fn2-new-resource
+      annotations:
+        config.kubernetes.io/function: |
+          container:
+            image: quay.io/aodinokov/templater-transformer
+    data:
+      entrypoint: |
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: fn2-generatedcfg1
+        data:
+          fld1: {{ YValue (YPipe $catalogue (list (YFilter (printf .Data.fld_get "['data', 'param1']")))) }}
+    ---
     apiVersion: builtin
     kind: PatchTransformer
     metadata:
