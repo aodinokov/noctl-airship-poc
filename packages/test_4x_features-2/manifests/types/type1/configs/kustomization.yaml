@@ -1,4 +1,4 @@
 resources:
 - catalogue.yaml
 - ../../../functions/function1/configs/
-- ../../../functions/function2/configs/
+- ../../../functions/composite1/configs/

@@ -1,7 +1,7 @@
 apiVersion: airshipit.org/v1alpha1
 kind: ReplacementTransformer
 metadata:
-  name: type1-replacements
+  name: comp1-replacements
   annotations:
     config.kubernetes.io/function: |-
       container:
@@ -9,18 +9,18 @@ metadata:
 replacements:
 - source:
     objref:
-      name: type1-catalogue
+      name: comp1-catalogue
     fieldref: "{.data.allFnParam1}"
   target:
     objref:
-      name: fn1-catalogue
+      name: fn2-catalogue
     fieldrefs: ["{.data.param1}"]
 - source:
     objref:
-      name: type1-catalogue
+      name: comp1-catalogue
     fieldref: "{.data.allFnParam1}"
   target:
     objref:
-      name: comp1-catalogue
-    fieldrefs: ["{.data.allFnParam1}"]
+      name: fn3-catalogue
+    fieldrefs: ["{.data.param1}"]
 

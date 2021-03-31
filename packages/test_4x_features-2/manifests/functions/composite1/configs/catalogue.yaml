@@ -1,0 +1,11 @@
+apiVersion: airshipit.org/v1alpha1
+kind: VariableCatalogue
+metadata:
+  labels:
+    airshipit.org/deploy-k8s: "false"
+  name: comp1-catalogue
+data:
+  switch: "true"
+  param1: "newval1fromComp1"
+  param2: "newval2fromComp1"
+  allFnParam1: "allFnNewval2fromComp1"

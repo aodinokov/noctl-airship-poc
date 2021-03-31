@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fn3-cfg1
+data:
+  fld1: val1
+  fld2: val2

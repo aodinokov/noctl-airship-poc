@@ -1,0 +1,4 @@
+resources:
+- resource.yaml
+- ../../function2/resources
+- ../../function3/resources

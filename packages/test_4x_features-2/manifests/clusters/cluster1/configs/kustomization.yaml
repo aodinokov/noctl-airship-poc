@@ -14,5 +14,3 @@ transformers:
       name: type1-catalogue
     data:
       allFnParam1: valueOverridenBySite1
-# this must always present (but order may vary)
-- ../../../types/type1/configs/transformers
