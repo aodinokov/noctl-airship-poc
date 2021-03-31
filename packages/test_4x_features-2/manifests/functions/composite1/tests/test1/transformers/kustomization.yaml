@@ -2,5 +2,6 @@ resources:
 - ../../../configs
 
 transformers:
+- ../../../configs/transformers
 - ../../../transformers
 - ../../../../cleanup

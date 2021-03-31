@@ -1,2 +1,3 @@
 resources:
 - tofunctions.yaml
+- ../../../../functions/composite1/configs/transformers/

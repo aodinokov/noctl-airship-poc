@@ -1,4 +1,3 @@
 resources:
-- ../../../configs/transformers/
 - ../../../../../functions/function1/transformers/
 - ../../../../../functions/composite1/transformers/

@@ -14,3 +14,4 @@ transformers:
       name: type1-catalogue
     data:
       allFnParam1: valueOverridenBySite1
+- ../../../types/type1/configs/transformers

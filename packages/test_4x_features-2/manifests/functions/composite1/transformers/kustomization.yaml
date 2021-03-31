@@ -1,5 +1,4 @@
 resources:
-- ../configs/transformers/
 - patchtemplate.yaml
 - ../../function2/transformers/
 - ../../function3/transformers/
