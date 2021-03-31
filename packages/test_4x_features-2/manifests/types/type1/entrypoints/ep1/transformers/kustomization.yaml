@@ -1,0 +1,3 @@
+resources:
+- ../../../../../functions/function1/transformers/
+- ../../../../../functions/function2/transformers/

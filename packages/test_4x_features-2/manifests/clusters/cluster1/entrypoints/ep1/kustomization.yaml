@@ -1,4 +1,4 @@
 resources:
-- ../../../../types/type1/entrypoints/ep1
+- ../../../../types/type1/entrypoints/ep1/
 transformers:
-- generatepatch/
+- transformers/

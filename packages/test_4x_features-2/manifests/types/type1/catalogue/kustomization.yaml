@@ -1,4 +1,0 @@
-resources:
-- catalogue.yaml
-- ../../../functions/function1/catalogue/
-- ../../../functions/function2/catalogue/

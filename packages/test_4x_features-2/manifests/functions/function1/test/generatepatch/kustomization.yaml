@@ -1,6 +1,0 @@
-resources:
-- ../../catalogue
-
-transformers:
-- ../../generatepatch
-- ../../../cleanup

@@ -1,5 +1,0 @@
-resources:
-- ../../../config
-transformers:
-- ../../../../../types/type1/entrypoints/ep1/generatepatch
-- ../../../../../functions/cleanup
