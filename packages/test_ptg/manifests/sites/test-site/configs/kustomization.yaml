@@ -1,0 +1,8 @@
+resources:
+  - ../../../infras/infra1/configs/
+  - ../../../types/gating/configs/
+
+patches:
+  - ephemeral/secrets.yaml
+  - target/secrets.yaml
+  - shared/hosts.yaml
