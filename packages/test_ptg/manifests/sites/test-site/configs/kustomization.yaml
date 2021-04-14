@@ -1,0 +1,4 @@
+resources:
+  - ephemeral/secrets.yaml
+  - target/secrets.yaml
+  - shared/hosts.yaml

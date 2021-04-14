@@ -4,5 +4,4 @@ if [ ! -f ./kustomize ]; then
 
 fi
 
-#KUSTOMIZE_PLUGIN_HOME=$(pwd) 
 ./kustomize build --enable-alpha-plugins $1
