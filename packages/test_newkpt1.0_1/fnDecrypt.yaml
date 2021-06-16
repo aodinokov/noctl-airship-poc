@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: decrypt-config
+data:
+  cmd: decrypt
+  cmd-extra-params-json-path-filter: '$[?(@.metadata.name=="keys")]'
