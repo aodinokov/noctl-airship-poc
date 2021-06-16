@@ -1,0 +1,14 @@
+apiVersion: kpt.dev/v1alpha2
+kind: Kptfile
+metadata:
+  name: newkpt
+info:
+  description: sample description
+pipeline:
+  mutators:
+    - image: gcr.io/kpt-fn/apply-setters:unstable
+      configPath: fnSecretSubstitutions.yaml
+  validators:
+    - image: gcr.io/kpt-fn/kubeval:v0.1
+      configMap:
+        strict: "true"
